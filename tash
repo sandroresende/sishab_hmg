@@ -1,0 +1,234 @@
+[33mcommit be95815414e169a500be0aee4a80a15cb7c6c2af[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Wed Feb 27 14:15:38 2019 -0300
+
+    correcao executivo - mun elegivel
+
+[33mcommit cd0597ca308d10a10466487e72289889650a8fd5[m[33m ([m[1;33mtag: v9.3p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Feb 19 15:39:38 2019 -0300
+
+    correcao da situacao da obra nos empreendimento
+
+[33mcommit e819dc3ac1dd329557008776b5a246643a8d7e5a[m[33m ([m[1;33mtag: v9[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Feb 14 11:18:22 2019 -0200
+
+    inclusao cabecalhos nos relatorios
+
+[33mcommit 4de9290c35f43b482680fccbec7579c34fd8813c[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Feb 12 13:35:14 2019 -0200
+
+    inclusao das matrizes de responsabilidade
+
+[33mcommit ded6470d594721aa69279494b69603a60b276389[m[33m ([m[1;33mtag: v9.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Feb 11 14:29:54 2019 -0200
+
+    correcao pagina inicial publica
+
+[33mcommit 922b9bbbbfd263651deb881eabf8b5bf203d0b77[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Feb 11 10:39:25 2019 -0200
+
+    versao com novo padrao secom
+
+[33mcommit 7693e503c04da3c2f8bb91fddd805a6dd97d588b[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Jan 29 13:59:50 2019 -0200
+
+    formatacao campo double export
+
+[33mcommit 6656d16a97b8ea591ff6706d7a73666a62f34433[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Jan 28 14:52:58 2019 -0200
+
+    correcao controlador codem
+
+[33mcommit c8a12a3ad26ca84deaefefedc445fa949ca2358b[m[33m ([m[1;33mtag: v8.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Jan 22 16:20:44 2019 -0200
+
+    correcao download excel empreendimentos
+
+[33mcommit 7c7bbcdb2adbbcf24d17640202f9f2ecb8122c3d[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Jan 18 15:54:00 2019 -0200
+
+    correcao codem
+
+[33mcommit d82acd9d18c844f0be9eebac568243a59c730a1b[m[33m ([m[1;33mtag: v8.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Jan 18 15:20:07 2019 -0200
+
+    inclusao modulo municipios sem contratacao
+
+[33mcommit d3734ae587f496c989b0d33f436ee29db1a5f1a9[m[33m ([m[1;33mtag: v9.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Wed Jan 9 16:56:52 2019 -0200
+
+    Correção do npm para produção
+
+[33mcommit f999f6bca7e7d65664522b3b1af87948db37b542[m[33m ([m[1;33mtag: v9.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Wed Jan 9 16:48:02 2019 -0200
+
+    Adicionado excel para empreendimentos
+
+[33mcommit 9806087055bc56f4580623241a1bd2719d9db24e[m[33m ([m[1;33mtag: v8.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Dec 27 15:14:12 2018 -0200
+
+    melhores no design do site
+
+[33mcommit 3749a410f30af95ec4ebf24e7ac7f48feb685c77[m[33m ([m[1;33mtag: v7.2[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Dec 20 11:24:24 2018 -0200
+
+    correcao rel exec historico faixa 1-5
+
+[33mcommit 3de5275935d5a8a2777267bb299410f69a19df9e[m
+Merge: f93859d 8170d0d
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Nov 9 14:59:41 2018 -0200
+
+    Merge branch 'master' of http://git.cidades.gov.br/MCidades/sishab_codigo_fonte
+
+[33mcommit f93859d2a96f5a772e80a8c446d2d6fd85905110[m[33m ([m[1;33mtag: v6.1p[m[33m, [m[1;31morigin/brc_retomada[m[33m, [m[1;32mbrc_retomada[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Nov 9 14:52:51 2018 -0200
+
+    melhorias modulo retomadas
+
+[33mcommit 8170d0d49e092ececd87db023d01eccb16a5acb8[m
+Author: Fernando Couto Avila <fernando.avila@cidades.gov.br>
+Date:   Wed Oct 24 15:47:34 2018 -0200
+
+    alteracao de versao
+
+[33mcommit b8ffe21aec6ee65656656dc02e1c16260dc59a45[m[33m ([m[1;33mtag: v6.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Oct 18 11:51:31 2018 -0300
+
+    criação das pesquisas por cnpj e do consulta da evolução das bases
+
+[33mcommit e3dbf4ad7ad2b7606f309cd589f07c5bcf2bfec3[m[33m ([m[1;33mtag: v5.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Oct 1 15:27:17 2018 -0300
+
+    correcao resumo selecao
+
+[33mcommit 9178c9b6ed985f80fe52c2a632cb2977dc593e34[m[33m ([m[1;33mtag: v5.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Oct 1 11:41:08 2018 -0300
+
+    correcao consulta empreendimentos
+
+[33mcommit 8ffb09b6c2ccfd62d02754448357472226642bfd[m[33m ([m[1;33mtag: v5.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Sep 21 11:08:31 2018 -0300
+
+    relatorio executivo historico
+
+[33mcommit 1c72ffe2178e13b6099470696b15630b3ecc0a1a[m[33m ([m[1;33mtag: v4.6p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Sep 18 15:06:03 2018 -0300
+
+    filtro por ano no executivo
+
+[33mcommit 486dd18747bf0723383ea65db514b61edc41b8a0[m[33m ([m[1;33mtag: v4.5p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Aug 28 12:06:54 2018 -0300
+
+    inclusao de relatorios selecionadas e contratadas
+
+[33mcommit 0d378a24c53ef8655e5120fed04a48fa8d021f74[m[33m ([m[1;33mtag: v4.3.5[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Aug 27 15:24:55 2018 -0300
+
+    correcao valor contratado na pagina limite
+
+[33mcommit cd171843f4aa0da54be84ef775bda9d6b67d8f2f[m[33m ([m[1;33mtag: v4.4.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Aug 21 16:29:29 2018 -0300
+
+    correcao relatorio limite municipio
+
+[33mcommit f50eef5be13d3f393e9f00a136c004adc91f37f8[m[33m ([m[1;33mtag: v4.4p[m[33m, [m[1;33mtag: status[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Aug 21 15:32:29 2018 -0300
+
+    inclusao relatorios oferta e correcao relatorio executivo
+
+[33mcommit fa4f98c41680e51e7a718ea3a5ae0c2b9bc13ab6[m[33m ([m[1;33mtag: v4.3.4[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Aug 17 11:22:39 2018 -0300
+
+    exclusao da biblioteca maatmaatwebsites
+
+[33mcommit fb775f76c78bd2a7bc0315a0b31b71e549321917[m[33m ([m[1;33mtag: v4.2.3p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Aug 17 09:34:47 2018 -0300
+
+    correcao texto dos filtros
+
+[33mcommit 20d59cfb170d810c4423dc5e101b9e88ef4e3767[m[33m ([m[1;33mtag: v2.4.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Aug 16 12:34:59 2018 -0300
+
+    alteracao no relatorio executivo
+
+[33mcommit 581ce007bbca19640a224245082a2c00c28399f8[m[33m ([m[1;33mtag: v.2.4.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Mon Aug 13 15:08:38 2018 -0300
+
+    correcao consulta rapida por nis
+
+[33mcommit 56b5245680681c5460d65d809675473405e29ad8[m[33m ([m[1;33mtag: v2.4p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Aug 9 16:33:23 2018 -0300
+
+    inclusao mensagem erro filtro empreendimentos
+
+[33mcommit c21594791c46fcbd4286499d2d673002b8689dda[m[33m ([m[1;33mtag: v2.3p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Aug 9 11:32:15 2018 -0300
+
+    correcao consulta empreendimentos
+
+[33mcommit dd326ef4215f24a5e72c036ca882dccfb8717563[m[33m ([m[1;33mtag: v2.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Wed Aug 8 15:51:43 2018 -0300
+
+    consulta os contratos do oferta
+
+[33mcommit 3d4d9f74b636d59cb91759000fe9b131cea9484e[m[33m ([m[1;33mtag: v2.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Tue Aug 7 15:18:59 2018 -0300
+
+    correcao registro usuario e atualizacao rel executivo
+
+[33mcommit 90263111de7547bfb605b2abae259489046779e9[m[33m ([m[1;33mtag: v2.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Aug 3 15:51:27 2018 -0300
+
+    inclusao do modulo dos contratos do oferta
+
+[33mcommit d70ea85d409617b8b0cb3ea6a1184effad46584d[m[33m ([m[1;33mtag: v1.2p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Wed Aug 1 14:17:54 2018 -0300
+
+    alteracao da consulta rapida e desenvolvimento do modulo retomada
+
+[33mcommit f256cf7bcf2e94cb1c727caa9838bb1d02188ff0[m[33m ([m[1;33mtag: v1.1p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Fri Jul 20 15:10:48 2018 -0300
+
+    correcao controlador selecao e tabela resumo selecao
+
+[33mcommit e5fb6df19d532504a15c84a09e1c9ae017a657a4[m[33m ([m[1;33mtag: v1.0p[m[33m)[m
+Author: Sandro Gonçalves de Sousa Resende <sandro.resende@cidades.gov.br>
+Date:   Thu Jul 19 15:05:01 2018 -0300
+
+    Commit inicial Selecao e Rel Executivo

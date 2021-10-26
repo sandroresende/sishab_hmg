@@ -1,0 +1,35 @@
+<template>
+<div>    
+    <button v-bind:class="cssbotao" type="button" @click="onClickEnviar()"><i v-bind:class="cssicone"></i>{{this.textobotao}}</button>    
+</div>
+</template>
+
+
+<script>
+    export default {
+        props:['url','registro','acao','mensagem','titulo','classbotao','icone','txtbotaoconfirma','txtbotaocancela','cssbotao','cssicone','textobotao'],
+        methods:{
+            onClickEnviar() {   
+                             
+               
+                    Swal({
+                       title: this.titulo,
+                        text: this.mensagem,
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#dc3545',
+                        confirmButtonText: this.txtbotaoconfirma,
+                        cancelButtonText: this.txtbotaocancela,
+                        }).then((result) => {
+                            if (result.value ) {
+                                 window.location.href= this.url + '/'+ this.registro;
+                            }else{
+                             
+                            }
+                        })
+               
+            }        
+        }
+    }
+</script>

@@ -1,0 +1,105 @@
+/* your styles go here */
+
+.label-relatorio{
+    padding: 0px 0px 0px 0px;
+    font-weight: 600 !important;
+    font-size: 0.9em;
+}
+
+.input-relatorio:disabled{
+    padding: 0px 0px 0px 0px;
+    background-color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    opacity: 1;
+    border: 0;
+
+}
+
+.input-alerta:disabled{
+    padding: 0px 0px 0px 0px;
+    background-color: red;
+    color:white;
+    font-family: Arial, Helvetica, sans-serif;
+    opacity: 1;
+    border: 0;
+
+}
+
+.form-group-relatorio{
+    border-bottom: 1px solid #eeeeee;
+}
+
+h2.documentFirstHeading{
+    font-size:2.3rem;
+    text-align:center;
+    margin-top:.1em;
+    margin-bottom:.3em /* - 6em - */
+}
+
+.documentFirstHeadingSpan{
+    font-size:1rem;
+    text-align:center;
+    margin-top:0;
+    margin-bottom:.3em /* - 6em - */
+}
+
+.linha-separa{
+    padding:5px 0;
+    margin:0 0 2rem;
+    color:#a6a6a6;
+    border-bottom:1px solid rgba(0,0,0,.1);
+    /*border-top:1px solid rgba(0,0,0,.1);    */
+}
+
+.input_bkg_amarelo:disabled{
+    background-color: yellow;
+    padding: 0px 0px 0px 0px;    
+    font-family: Arial, Helvetica, sans-serif;
+    opacity: 1;
+    border: 0;
+}
+
+.fundo_cinza{
+    background-color: #eee;    
+    font-family: Arial, Helvetica, sans-serif;
+    border: 0px 2px solid  rgba(255, 255, 255, 0);
+    border-left-color: 2px solid black;
+    border-right-color: black;
+
+}
+
+.text-nota{
+    color: darkgray !important;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.7em;
+    margin-top: 0px;
+  }
+
+.relatorios  {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+a.modeloOficio {
+    text-decoration: none;
+    font-size: 1.1em;
+    color: white;
+  }
+  
+  a.modeloOficio:hover,
+  a.modeloOficio:active {
+    color: darkgrey;
+  }
+
+  
+.tituloPrincipal {
+    font-weight: bold;
+    font-size: 1.8em;
+  }
+  
+  
+  h2.tituloPrincipal {
+    font-weight: bold;
+    font-size: 2.1em;
+  }
+  
+
