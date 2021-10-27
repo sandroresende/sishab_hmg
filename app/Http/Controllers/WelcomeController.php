@@ -10,28 +10,38 @@ use Illuminate\Support\Facades\Storage;
 
 use Illuminate\Http\Request;
 
-use App\Http\Requests\prototipo\RegistroUsuario;
-
 use App\User;
 use Config\App;
 
 use Illuminate\Support\Facades\Mail;
 
-use App\EstimativaPopulacao;
-use App\DeficitHabitacional;
-use App\Operacao;
-use App\PainelContratacaoAno;
-use App\Entregas;
+use App\Mod_Sishab\Operacoes\ViewOperacoesContratadas;
+use App\Mod_Sishab\Operacoes\ViewOperacoesContratadasAno;
 
-use App\prototipo\EntePublicoProponente;
-use App\prototipo\Permissoes;
-use App\prototipo\ModalidadeParticipacao;
-use App\TipoProponente;
+use App\Mod_sishab\Sishab\Configuracoes;
+
+use App\Mod_prototipo\EntePublicoProponente;
+use App\Mod_prototipo\Permissoes;
+use App\Mod_prototipo\ModalidadeParticipacao;
+use App\Tab_dominios\TipoProponente;
+
+use App\Mod_pcva_parcerias\EntePublicoParcerias;
+use App\Mod_pcva_parcerias\DadosParcerias;
+use App\Mod_pcva_parcerias\MunicipiosBeneficiadosParcerias;
+use App\Tab_dominios\SituacaoAdesao;
+
+use App\Http\Requests\Mod_prototipo\RegistroUsuario;
+use App\Http\Requests\Mod_pcva_parceria\AceitarAdesao;
+
 
 use App\Mail\NovoUsuario;
+use App\Mail\ArquivoTermoEnviado;
+use App\Mail\AceiteAdesaoParceria;
 
-use App\Municipio;
-use App\Uf;
+use App\IndicadoresHabitacionais\Municipio;
+use App\IndicadoresHabitacionais\Uf;
+
+
 class WelcomeController extends Controller
 {
     /**
@@ -52,181 +62,64 @@ class WelcomeController extends Controller
     public function index()
     {
         
-        $populacao = new EstimativaPopulacao;
-        $populacaoTotal =  $populacao->qtdePopulacaoEstimada();
+        $whereMcmv = [];
+        $whereMcmv[]  = ['programa_id', 1];
 
-        $deficit = DeficitHabitacional::selectRaw('sum(vlr_deficit_habitacional_urbano) as vlr_deficit_habitacional_urbano, 
-                                                  sum(vlr_deficit_habitacional_rural) as vlr_deficit_habitacional_rural')
-                                                ->firstOrFail();
+
+         $operacoesContratadasMcmv = ViewOperacoesContratadas::dadosRelatorioExecutivo($whereMcmv);
+        $resumoContratadasProgramaMcmv = ViewOperacoesContratadas::resumoContratadasPrograma($whereMcmv);
+         $dadosRelatorioExecutivoPorAnoMcmv = ViewOperacoesContratadasAno::dadosRelatorioExecutivoPorAno($whereMcmv);
+         $resumoRelatorioExecutivoPorAnoMcmv = ViewOperacoesContratadasAno::resumoRelatorioExecutivoPorAno($whereMcmv);
+        //$resumoContratadasProgramaMcmv->sum('num_entregues');    
+
+        $whereCvea = [];
+        $whereCvea[]  = ['programa_id', 2];
+        $operacoesContratadasCvea = ViewOperacoesContratadas::dadosRelatorioExecutivo($whereCvea);
+         $resumoContratadasProgramaCvea = ViewOperacoesContratadas::resumoContratadasPrograma($whereCvea);
+        $dadosRelatorioExecutivoPorAnoCvea = ViewOperacoesContratadasAno::dadosRelatorioExecutivoPorAno($whereCvea);
+        $resumoRelatorioExecutivoPorAnoCvea = ViewOperacoesContratadasAno::resumoRelatorioExecutivoPorAno($whereCvea);
+
+        //$resumoContratadasProgramaCvea->sum('num_entregues');   
         
-        $dataPosicao = Operacao::join('opc_modalidades','opc_modalidades.id','=','tab_operacoes.modalidade_id')
-                                ->selectRaw('txt_modalidade, max(dte_movimento_arquivo) as dte_movimento')->where('modalidade_id','!=',99)
-                                                ->groupBy('txt_modalidade')->get();
-        $relatorioExecutivo1 = Operacao::join('opc_status_empreendimento','opc_status_empreendimento.id','=','tab_operacoes.status_empreendimento_id')
-                                ->join('opc_modalidades','opc_modalidades.id','=','tab_operacoes.modalidade_id')
-                                ->join('opc_faixa_renda','opc_faixa_renda.id','=','tab_operacoes.faixa_renda_id')
-                                ->selectRaw('txt_modalidade, dsc_faixa, faixa_renda_id, max(dte_movimento_arquivo) as dte_movimento,
-                                            sum(qtd_uh_financiadas) AS num_uh,
-                                            sum(num_uh_distratadas) AS num_distratadas,
-                                            sum(CASE
-                                                    WHEN status_empreendimento_id = 7 THEN 0
-                                                    WHEN opc_status_empreendimento.bln_vigente = true AND modalidade_id = 1 AND origem_id = 3 THEN qtd_uh_financiadas - num_uh_distratadas
-                                                    ELSE qtd_uh_financiadas - qtd_uh_entregues - num_uh_distratadas
-                                                END) AS num_vigentes,
-                                            sum(CASE
-                                                    WHEN status_empreendimento_id = 7 THEN qtd_uh_financiadas - qtd_uh_entregues - num_uh_distratadas
-                                                    ELSE 0
-                                                END) AS num_nao_entregues,
-                                            sum(qtd_uh_entregues) as num_entregues,
-                                            sum(vlr_liberado) as num_vlr_liberado, 
-                                            sum(vlr_operacao) as num_vlr_total')
-                                        ->groupBy('txt_modalidade','dsc_faixa', 'faixa_renda_id')
-                                        ->where('programa_id',1)
-                                        ->orderBy('dsc_faixa', 'txt_modalidade')
-                                        ->get();
-
-
-             $relatorioExecutivo2 = Operacao::join('opc_status_empreendimento','opc_status_empreendimento.id','=','tab_operacoes.status_empreendimento_id')
-                                        ->join('opc_modalidades','opc_modalidades.id','=','tab_operacoes.modalidade_id')
-                                        ->join('opc_faixa_renda','opc_faixa_renda.id','=','tab_operacoes.faixa_renda_id')
-                                        ->selectRaw('txt_modalidade, dsc_faixa, faixa_renda_id, max(dte_movimento_arquivo) as dte_movimento,
-                                                    sum(qtd_uh_financiadas) AS num_uh,
-                                                    sum(num_uh_distratadas) AS num_distratadas,
-                                                    sum(CASE
-                                                            WHEN status_empreendimento_id = 7 THEN 0
-                                                            WHEN opc_status_empreendimento.bln_vigente = true AND modalidade_id = 1 AND origem_id = 3 THEN qtd_uh_financiadas - num_uh_distratadas
-                                                            ELSE qtd_uh_financiadas - qtd_uh_entregues - num_uh_distratadas
-                                                        END) AS num_vigentes,
-                                                    sum(CASE
-                                                            WHEN status_empreendimento_id = 7 THEN qtd_uh_financiadas - qtd_uh_entregues - num_uh_distratadas
-                                                            ELSE 0
-                                                        END) AS num_nao_entregues,
-                                                    sum(qtd_uh_entregues) as num_entregues,
-                                                    sum(vlr_liberado) as num_vlr_liberado, 
-                                                    sum(vlr_operacao) as num_vlr_total')
-                                                ->groupBy('txt_modalidade','dsc_faixa', 'faixa_renda_id')
-                                                ->where('programa_id',2)
-                                                ->orderBy('dsc_faixa', 'txt_modalidade')
-                                                ->get();
+        $where = [];
+        $mostrarPeriodo = true;
         
         
-
-
-        $uh_contratadas = $relatorioExecutivo1->sum('num_uh');   
-        
-        $whereContAno = [];
-        $whereContAno[] = ['num_ano_assinatura', '>=', 2019];
-        $whereContAno[] = ['programa_id', 1];
-
-        $contratacaoAno = PainelContratacaoAno::selectRaw('txt_regiao, num_ano_assinatura, sum(uh_faixa_1) as uh_faixa_1,sum(uh_faixa_15) as uh_faixa_15,
-                                    sum(uh_faixa_2) as uh_faixa_2,sum(uh_faixa_3) as uh_faixa_3, 
-                                    sum(uh_producao_estoque) as uh_producao_estoque,
-                                    sum(vlr_contratado) as vlr_contratado,sum(qtd_uh_contratada) as qtd_uh_contratada ')
-                                    ->where($whereContAno)
-                                    ->groupBy('txt_regiao','num_ano_assinatura')
-                                    ->orderBy('txt_regiao')
-                                    ->get();                                        
-        
-        $valoresMCMV2019 = ['faixa1'=> 0, 'faixa15'=> 0, 'faixa2'=> 0,'faixa3'=> 0,'producao'=> 0, 'valor_contratado'=> 0, 'contratadas' => 0]; 
-        $valoresMCMV2020 = ['faixa1'=> 0, 'faixa15'=> 0, 'faixa2'=> 0,'faixa3'=> 0,'producao'=> 0, 'valor_contratado'=> 0, 'contratadas' => 0]; 
-        
-        foreach($contratacaoAno as $dados){
-            if($dados->num_ano_assinatura == 2019){
-                $valoresMCMV2019['faixa1'] += empty($dados->uh_faixa_1) ? 0 : $dados->uh_faixa_1;  
-                $valoresMCMV2019['faixa15'] += empty($dados->uh_faixa_15) ? 0 : $dados->uh_faixa_15;  
-                $valoresMCMV2019['faixa2'] += empty($dados->uh_faixa_2) ? 0 : $dados->uh_faixa_2;  
-                $valoresMCMV2019['faixa3'] += empty($dados->uh_faixa_3) ? 0 : $dados->uh_faixa_3;  
-                $valoresMCMV2019['producao'] += empty($dados->uh_producao_estoque) ? 0 : $dados->uh_producao_estoque;  
-                $valoresMCMV2019['valor_contratado'] += empty($dados->vlr_contratado) ? 0 : $dados->vlr_contratado;  
-                $valoresMCMV2019['contratadas'] += empty($dados->qtd_uh_contratada) ? 0 : $dados->qtd_uh_contratada;  
-            }else{
-                $valoresMCMV2020['faixa1'] += empty($dados->uh_faixa_1) ? 0 : $dados->uh_faixa_1;  
-                $valoresMCMV2020['faixa15'] += empty($dados->uh_faixa_15) ? 0 : $dados->uh_faixa_15;  
-                $valoresMCMV2020['faixa2'] += empty($dados->uh_faixa_2) ? 0 : $dados->uh_faixa_2;  
-                $valoresMCMV2020['faixa3'] += empty($dados->uh_faixa_3) ? 0 : $dados->uh_faixa_3;  
-                $valoresMCMV2020['producao'] += empty($dados->uh_producao_estoque) ? 0 : $dados->uh_producao_estoque;  
-                $valoresMCMV2020['valor_contratado'] += empty($dados->vlr_contratado) ? 0 : $dados->vlr_contratado;  
-                $valoresMCMV2020['contratadas'] += empty($dados->qtd_uh_contratada) ? 0 : $dados->qtd_uh_contratada;  
-            }
-            
-        }
-
-
-        $entregaAno = Entregas::join('tab_municipios','tab_entregas.municipio_id', '=','tab_municipios.id')
-                                        ->join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                                        ->join('tab_regiao', 'tab_uf.regiao_id', '=', 'tab_regiao.id')            
-                                        ->selectRaw('txt_regiao, num_ano_entrega,
-                                        sum(
-                                            CASE
-                                                WHEN tab_entregas.faixa_renda_id = 1 THEN 1
-                                                ELSE 0
-                                            END) AS uh_faixa_1,
-                                        sum(
-                                            CASE
-                                                WHEN tab_entregas.faixa_renda_id = 4 THEN 1
-                                                ELSE 0
-                                            END) AS uh_faixa_15,
-                                        sum(
-                                            CASE
-                                                WHEN tab_entregas.faixa_renda_id = 2 THEN 1
-                                                ELSE 0
-                                            END) AS uh_faixa_2,
-                                        sum(
-                                            CASE
-                                                WHEN tab_entregas.faixa_renda_id = 3 THEN 1
-                                                ELSE 0
-                                            END) AS uh_faixa_3,
-                                        count(tab_entregas.txt_cpf_mutuario) AS qtd_uh_entregues,
-                                        sum(
-                                            CASE
-                                                WHEN tab_entregas.faixa_renda_id = 1 THEN tab_entregas.vlr_unidade_habitacional
-                                                ELSE 0
-                                            END) AS vlr_uh_entregues_fx1,
-                                            sum(
-                                                CASE
-                                                    WHEN tab_entregas.faixa_renda_id != 1 THEN 0
-                                                    ELSE tab_entregas.vlr_unidade_habitacional
-                                                END) AS vlr_uh_entregues_fgts')
-                                        ->where('num_ano_entrega', '>=',2019)                                
-                                        ->groupBy('txt_regiao','num_ano_entrega')                                                
-                                        ->orderBy('txt_regiao', 'asc')
-                                            ->get();
-
-
-            $valoresEntregas2019 = ['faixa1'=> 0, 'faixa15'=> 0, 'faixa2'=> 0,'faixa3'=> 0,'entregues'=> 0, 'valor_uh_entregues'=> 0]; 
-            $valoresEntregas2020 = ['faixa1'=> 0, 'faixa15'=> 0, 'faixa2'=> 0,'faixa3'=> 0,'entregues'=> 0, 'valor_uh_entregues'=> 0]; 
-            
-            foreach($entregaAno as $dados){
-                if($dados->num_ano_entrega == 2019){
-                    $valoresEntregas2019['faixa1'] += empty($dados->uh_faixa_1) ? 0 : $dados->uh_faixa_1;  
-                    $valoresEntregas2019['faixa15'] += empty($dados->uh_faixa_15) ? 0 : $dados->uh_faixa_15;  
-                    $valoresEntregas2019['faixa2'] += empty($dados->uh_faixa_2) ? 0 : $dados->uh_faixa_2;  
-                    $valoresEntregas2019['faixa3'] += empty($dados->uh_faixa_3) ? 0 : $dados->uh_faixa_3;              
-                    $valoresEntregas2019['entregues'] += $dados->qtd_uh_entregues;      
-                    $valoresEntregas2019['valor_uh_entregues'] += $dados->vlr_uh_entregues_fx1+$dados->vlr_uh_entregues_fgts;      
-                }else{
-                    $valoresEntregas2020['faixa1'] += empty($dados->uh_faixa_1) ? 0 : $dados->uh_faixa_1;  
-                    $valoresEntregas2020['faixa15'] += empty($dados->uh_faixa_15) ? 0 : $dados->uh_faixa_15;  
-                    $valoresEntregas2020['faixa2'] += empty($dados->uh_faixa_2) ? 0 : $dados->uh_faixa_2;  
-                    $valoresEntregas2020['faixa3'] += empty($dados->uh_faixa_3) ? 0 : $dados->uh_faixa_3;              
-                    $valoresEntregas2020['entregues'] += $dados->qtd_uh_entregues;      
-                    $valoresEntregas2020['valor_uh_entregues'] += $dados->vlr_uh_entregues_fx1+$dados->vlr_uh_entregues_fgts;                          
-                }  
-            }                                            
-            
-         return view('welcome',compact('populacaoTotal','deficit','uh_contratadas','relatorioExecutivo1','relatorioExecutivo2','dataPosicao',
-                                        'valoresMCMV2019','valoresMCMV2020','contratacaoAno','valoresEntregas2019','valoresEntregas2020','entregaAno')); 
+         return view('welcome',compact('resumoContratadasProgramaCvea',
+         'resumoContratadasProgramaMcmv','operacoesContratadasMcmv','operacoesContratadasCvea','mostrarPeriodo',
+        'dadosRelatorioExecutivoPorAnoMcmv','dadosRelatorioExecutivoPorAnoCvea',
+    'resumoRelatorioExecutivoPorAnoMcmv','resumoRelatorioExecutivoPorAnoCvea')); 
     }
 
+    
+
     public function solicitarRegistro(){
-         $tipos_proponente = TipoProponente::get();
-          $modalidades_participacao = ModalidadeParticipacao::get();
+        $where = [];
+        $where[] = ['modulo_sistema_id', 3];
+        $where[] = ['id', 1];
+        
+        $configuracoes = Configuracoes::where($where)->first();
+        $dataInicial = $configuracoes->dte_inicio;
+        $prazo = $configuracoes->num_prazo_dias;
+        $dataAtual = Date("Y-m-d");
+
+        $qtDias = diferenca_datas($dataInicial, $dataAtual) + 1;
+
+        $solicitaRegistro = true;
+        if ($qtDias > $prazo){            
+            $solicitaRegistro = false; 
+            flash()->erro("Prazo Encerrado", "O prazo para solicitação de registro se encerrou."); 
+           // return redirect('/prototipo/resultado');
+            
+        } 
+         $tipos_proponente = TipoProponente::orderBy('txt_tipo_proponente')->get();
+          $modalidades_participacao = ModalidadeParticipacao::where('bln_ativo',true)->get();
          
-        return view('registro_modulos', compact('tipos_proponente','modalidades_participacao'));
+        return view('views_prototipo.registro_modulos', compact('tipos_proponente','modalidades_participacao','solicitaRegistro'));
         }
 
     public function salvarRegistro(RegistroUsuario $request){
-            //return  $request->all();
+           // return  $request->all();
                 
             $estado = Uf::where('id',$request->estado)->firstOrFail();
              $municipio = Municipio::where('id',$request->municipio)->firstOrFail();
@@ -261,8 +154,16 @@ class WelcomeController extends Controller
                 $entePublico->tipo_proponente_id = $request->tipo_proponente_id;
                 $entePublico->municipio_id = $request->municipio;                
                 $entePublico->txt_nome_chefe_executivo = $request->txt_nome_chefe_executivo;
-                $entePublico->txt_cargo_executivo = $request->cargo_executivo;
+                $entePublico->txt_cargo_executivo = $request->cargo_executivo;                
+                $entePublico->txt_cnpj_orgao_rep = $request->txt_cnpj_orgao_rep;
+                $entePublico->txt_orgao_responsavel = $request->txt_orgao_responsavel;
+                $entePublico->txt_nome_representante = $request->txt_nome_representante;
+                $entePublico->txt_sobrenome_representante = $request->txt_sobrenome_representante;
+                $entePublico->txt_cargo_representante = $request->txt_cargo_representante;
+                $entePublico->txt_cpf_representante = $request->txt_cpf_representante;
+                $entePublico->bln_adm_indireta = $request->bln_adm_indireta;
 
+                
                 // return $entePublico;
 
                 $salvoComSucessoEnte = $entePublico->save();
@@ -277,13 +178,13 @@ class WelcomeController extends Controller
                 $tipoAquivo = '';
                 $path_arquivo = '';
             if($request->file('txt_caminho_oficio')){
-                $nomeArqOficio = 'arqOficio-'.$request->municipio.'-'.str_replace("-", "", Date("Y-m-d")).str_replace(":", "", Date("H:i:s")).'.'.$request->file('txt_caminho_oficio')->extension();
-                $path_arquivo = public_path(). 'uploads_arquivos/prototipo/oficios/'.$request->municipio;
+                $nomeArqOficio = 'arqOficio-'.$request->municipio.'-'.str_replace("-", "", Date("Y-m-d")).str_replace(":", "", Date("H:i:s").'-'.$usuario->id).'.'.$request->file('txt_caminho_oficio')->extension();
+                $path_arquivo = public_path(). '/uploads_arquivos/prototipo/oficios/'.$usuario->id;
                 
                 if(!File::isDirectory($path_arquivo)){
                     File::makeDirectory($path_arquivo, 0777, true, true);
                 }
-                $caminho_oficio = $request->file('txt_caminho_oficio')->storeAs('uploads_arquivos/prototipo/oficios/'.$request->municipio, $nomeArqOficio, 'arquivos');            
+                $caminho_oficio = $request->file('txt_caminho_oficio')->storeAs('uploads_arquivos/prototipo/oficios/'.$usuario->id, $nomeArqOficio, 'arquivos');            
                 $tipoAquivo = $request->file('txt_caminho_oficio')->getMimeType();
                 if(!verificaTipoArquivo($tipoAquivo)){
                     DB::rollBack();
@@ -297,13 +198,13 @@ class WelcomeController extends Controller
             $tipoAquivoCohab = '';
             $path_arquivoCohab = '';
             if($request->file('txt_caminho_oficio_cohab')){
-                $nomeArqOficioCohab = 'arqOficioCohab-'.$request->municipio.'-'.str_replace("-", "", Date("Y-m-d")).str_replace(":", "", Date("H:i:s")).'.'.$request->file('txt_caminho_oficio_cohab')->extension();
-                $path_arquivoCohab = public_path(). 'uploads_arquivos/prototipo/oficios/'.$request->municipio;
+                $nomeArqOficioCohab = 'arqOficioCohab-'.$request->municipio.'-'.str_replace("-", "", Date("Y-m-d")).str_replace(":", "", Date("H:i:s").'-'.$usuario->id).'.'.$request->file('txt_caminho_oficio_cohab')->extension();
+                $path_arquivoCohab = public_path(). '/uploads_arquivos/prototipo/oficios/'.$usuario->id;
                 
                 if(!File::isDirectory($path_arquivoCohab)){
                     File::makeDirectory($path_arquivoCohab, 0777, true, true);
                 }
-                $caminho_oficioCohab = $request->file('txt_caminho_oficio_cohab')->storeAs('uploads_arquivos/prototipo/oficios/'.$request->municipio, $nomeArqOficioCohab, 'arquivos');            
+                $caminho_oficioCohab = $request->file('txt_caminho_oficio_cohab')->storeAs('uploads_arquivos/prototipo/oficios/'.$usuario->id, $nomeArqOficioCohab, 'arquivos');            
                 $tipoAquivoCohab = $request->file('txt_caminho_oficio_cohab')->getMimeType();
                 if(!verificaTipoArquivo($tipoAquivoCohab)){
                     DB::rollBack();
@@ -331,10 +232,10 @@ class WelcomeController extends Controller
         if ($salvoComSucessoUsu && $salvoComSucessoEnte && $salvoComSucessoPermissoes){            
            
             $usuario->load('entePublicoProponente');
-            Mail::to($request->email)->send(new NovoUsuario($usuario, $permissoes));
+            Mail::to('cct-snh@mdr.gov.br')->send(new NovoUsuario($usuario, $permissoes));
             DB::commit();
             flash()->sucesso("Sucesso", "Usuário cadastrado com sucesso!"); 
-            return view('prototipo.mensagem_solicitacao_registro',compact('entePublico','usuario','uh_contratadas','municipio','estado')); 
+            return view('views_prototipo.mensagem_solicitacao_registro',compact('entePublico','usuario','uh_contratadas','municipio','estado')); 
             
         } else {
             DB::rollBack();
@@ -344,6 +245,250 @@ class WelcomeController extends Controller
         }  
 
 }    
+
+
+    public function resultadoAtas(){
+        return view('views_prototipo.atas_resultado'); 
+    }
+
+
+    public function solicitarAdesaoParcerias(){
+
+        $tipos_proponente = TipoProponente::orderBy('txt_tipo_proponente')->get();
+        $modalidades_participacao = ModalidadeParticipacao::where('bln_ativo',true)->get();
+
+        return view('views_pcva_parcerias.solicitar_adesao', compact('tipos_proponente','modalidades_participacao','solicitaRegistro'));
+    }
+
+    public function aceitarAdesaoParcerias(AceitarAdesao $request){
+   
+
+        //return $request->all();
+        DB::beginTransaction();
+        
+        $entePublicoParcerias = new EntePublicoParcerias;
+        $entePublicoParcerias->txt_cnpj_ente_publico = $request->txt_cnpj;
+        $entePublicoParcerias->modalidade_participacao_id = $request->modalidade_participacao;
+        $entePublicoParcerias->tipo_proponente_id = $request->tipo_proponente_id;
+        $entePublicoParcerias->txt_ente_publico = $request->txt_nome_proponente;
+        $entePublicoParcerias->txt_email_ente_publico = $request->txt_email_ente_publico;
+        
+        $whereCapital = [];
+        if($request->tipo_proponente_id != 2){
+            if($request->tipo_proponente_id == 6){
+                $estado = Uf::where('id',53)->firstOrFail();
+                $whereCapital[] = ['uf_id', 53];              
+            }else{
+                $estado = Uf::where('id',$request->estado)->firstOrFail();
+                $whereCapital[] = ['uf_id', $request->estado];
+            }
+            
+            $whereCapital[] = ['bln_capital', true];
+            $municipio = Municipio::where($whereCapital)->first();  
+            $entePublicoParcerias->municipio_id = $municipio->id;
+        }else{
+            $entePublicoParcerias->municipio_id = $request->municipio;
+            $estado = Uf::where('id',$request->estado)->firstOrFail();
+            $municipio = Municipio::where('id', $request->municipio)->firstOrFail();              
+        }
+
+        $entePublicoParcerias->txt_nome_chefe_executivo = $request->txt_nome_chefe_executivo;
+        $entePublicoParcerias->txt_cargo_executivo = $request->cargo_executivo;
+        $entePublicoParcerias->txt_nome_usuario = $request->txt_nome . ' ' . $request->txt_sobrenome;
+        $entePublicoParcerias->txt_cargo_usuario = $request->txt_cargo;
+        $entePublicoParcerias->txt_cpf_usuario = $request->txt_cpf_usuario;
+        $entePublicoParcerias->txt_ddd_usuario = $request->txt_ddd;
+        $entePublicoParcerias->txt_telefone_usuario = $request->txt_telefone;
+        $entePublicoParcerias->txt_ddd_celular_usuario = $request->txt_ddd_movel;
+        $entePublicoParcerias->txt_celular_usuario = $request->txt_celular;
+        $entePublicoParcerias->txt_email_usuario = $request->email;
+        $entePublicoParcerias->bln_aceite_termo = true;
+
+        $entePublicoParcerias->created_at = Date('Y-m-d');
+        $salvoEnte = $entePublicoParcerias->save();
+
+        $dadosParceria = new DadosParcerias;
+        $dadosParceria->ente_publico_parceria_id = $entePublicoParcerias->id;        
+        $dadosParceria->num_unidades = $request->num_unidades;
+        $dadosParceria->vlr_contrapartida_uh = $request->vlr_contrapartida_uh;
+        $dadosParceria->vlr_terreno_uh = $request->vlr_terreno_uh;
+        $dadosParceria->vlr_contrapartida_financ_uh = $request->vlr_contrapartida_financ_uh;
+        $dadosParceria->created_at = Date('Y-m-d');
+        $dadosParceria->bln_contrapartida_adicional = $request->bln_contrapartida_adicional;
+        
+        if($request->bln_contrapartida_adicional){
+            $dadosParceria->tipo_contrapartida_id = $request->tipo_contrapartida;
+            $dadosParceria->vlr_contrapartida_adicional = $request->vlr_contrapartida_adicional;
+        }    
+        $dadosParceria->situacao_adesao_id = 1;
+        
+        $salvoDados = $dadosParceria->save();
+
+        $dadosParceria->txt_protocolo_aceite = $dadosParceria->txt_protocolo_aceite =  Date("Ymd"). strval(($dadosParceria->id * intval(Date("Y"))) - intval(Date("d"))) .'-' . strval($dadosParceria->id);
+
+        $salvoDados = $dadosParceria->update();
+       
+        $todosMunicipio = false;
+        if($request->bln_todos_municipios){
+            $todosMunicipio = true;
+        }
+        //return $estado->id;
+
+        if($todosMunicipio){
+             $municipios = Municipio::where('uf_id', $estado->id)->get();             
+        }else{
+            if($request->tipo_proponente_id == 1){
+                $municipios = Municipio::whereIn('id', $request->municipiosbeneficiados)->get();             
+            }else{
+                $municipios = Municipio::where('id', $municipio->id)->get();           
+            }
+        }
+
+        //return $municipios;
+            foreach($municipios as $dados){
+
+                $municipiosBeneficiados = new MunicipiosBeneficiadosParcerias;
+                $municipiosBeneficiados->dados_parceria_id = $dadosParceria->id;
+                $municipiosBeneficiados->municipio_id = $dados->id;
+                $salvoMunicipios = $municipiosBeneficiados->save();
+            }
+        /*
+             if($request->tipo_proponente_id == 1){
+                $municipiosBeneficiados = new MunicipiosBeneficiadosParcerias;
+                $municipiosBeneficiados->dados_parceria_id = $dadosParceria->id;
+                $municipiosBeneficiados->municipio_id = $municipio->id;
+                $salvoMunicipios = $municipiosBeneficiados->save();
+            }
+          */
+
+            if ($salvoEnte && $salvoDados && $salvoMunicipios){   
+              //  Mail::to($entePublicoParcerias->txt_email_usuario)->send(new AceiteAdesaoParceria($dadosParceria, $municipiosBeneficiados, $entePublicoParcerias,$municipio,$estado));
+              //  Mail::to($entePublicoParcerias->txt_email_ente_publico)->send(new AceiteAdesaoParceria($dadosParceria, $municipiosBeneficiados, $entePublicoParcerias,$municipio,$estado));
+                DB::commit();
+                flash()->sucesso("Sucesso", "Usuário cadastrado com sucesso!"); 
+                    return redirect('/pcva_parcerias/protocolo/termo/'.$dadosParceria->txt_protocolo_aceite);
+                
+            } else {
+                DB::rollBack();
+                flash()->erro("Erro", "Erro ao salvar dados do formulário!"); 
+                return back();
+                
+            }  
+        }
+
+        public function visualizarTermoParceira($txtProtocoloAceite){
+
+        //  return $txtProtocoloAceite;
+
+            $dadosParceria = DadosParcerias::where('txt_protocolo_aceite',$txtProtocoloAceite)->first();
+           
+
+            if(!$dadosParceria){  
+            flash()->erro("Erro", "Não existe Termo de Adesão para este protocolo!"); 
+            return redirect('pcva_parcerias/termo/consultar');
+                
+            } else{
+                $dadosParceria->load('situacaoAdesao','tipoContrapartida');
+            $entePublicoParcerias = EntePublicoParcerias::where('id',$dadosParceria->ente_publico_parceria_id)->firstOrFail();
+
+             $entePublicoParcerias->load('tipoProponente');
+
+            $municipiosBeneficiados = MunicipiosBeneficiadosParcerias::join('tab_municipios','tab_municipios_beneficiados_parcerias.municipio_id', '=','tab_municipios.id')
+                                                                                ->join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+                                                                                ->selectRaw('municipio_id,txt_sigla_uf, ds_municipio')
+                                                                                ->where('dados_parceria_id',$dadosParceria->id)
+                                                                                ->orderBy('ds_municipio')
+                                                                                ->get();
+            $municipio = Municipio::where('id', $entePublicoParcerias->municipio_id)->firstOrFail();       
+            $estado = Uf::where('id',$municipio->uf_id)->firstOrFail();
+        
+
+            return view('views_pcva_parcerias.termo_parceria', compact('entePublicoParcerias','dadosParceria','municipiosBeneficiados','municipio','estado'));
+        } 
+    }
+
+    public function consultarTermoParceira(){
+
+        return  view('views_pcva_parcerias.consulta_termo_adesao');
+    }
+       
+
+    public function filtroTermoParceira(Request $request){
+        
+        return redirect('/pcva_parcerias/protocolo/termo/'.$request->txtProtocoloAceite);
+    }
+
+    public function filtroValidacaoTermoParceira(){
+
+        return  view('views_pcva_parcerias.validar_termo_adesao');
+    }
+
+    public function validarTermoParceira(Request $request){
+        
+        //return $request->all();
+        $where = [];
+        $where[] = ['tab_dados_parcerias.txt_protocolo_aceite', $request->txtProtocoloAceite];
+        $where[] = ['tab_ente_publico_parcerias.txt_cpf_usuario', $request->txt_cpf_usuario];
+
+         $dadosTermo = DadosParcerias::join('tab_ente_publico_parcerias','tab_dados_parcerias.ente_publico_parceria_id','=','tab_ente_publico_parcerias.id')
+                                             ->join('tab_municipios','tab_ente_publico_parcerias.municipio_id', '=','tab_municipios.id')
+                                             ->join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+                                    ->where($where)
+                                    ->select('tab_dados_parcerias.id as DadosParceriasID', 'tab_dados_parcerias.txt_protocolo_aceite',
+                                                'txt_nome_usuario','txt_sobrenome_usuario','txt_cpf_usuario','txt_cnpj_ente_publico','txt_ente_publico','municipio_id',
+                                                'txt_sigla_uf','ds_municipio','tab_ente_publico_parcerias.txt_email_usuario','tab_ente_publico_parcerias.txt_email_ente_publico')
+                                    ->first();
+
+        
+        if(!$dadosTermo){  
+            flash()->erro("Erro", "Não existe Termo de Adesão para os parametros informados!"); 
+            return redirect('pcva_parcerias/validacao/filtro');
+            
+        } else{
+             $dadosParcerias = DadosParcerias::find($dadosTermo->DadosParceriasID);
+
+             if($dadosParcerias->situacao_adesao_id != 1){  
+                flash()->erro("Erro", "Esse termo já foi enviado."); 
+                return redirect('pcva_parcerias/validacao/filtro');
+             }else{  
+                $nomeArq = '';
+                $caminhoArq = '';
+                $path_arquivo = '';
+                if($request->file('txt_caminho_termo')){
+                    $nomeArq = 'arqTermoAdesao-'.$dadosParcerias->txt_protocolo_aceite.'.'.$request->file('txt_caminho_termo')->extension();
+                    $path_arquivo = public_path(). '/uploads_arquivos/pcva_parceria/termos/'.$dadosParcerias->txt_protocolo_aceite;
+                    
+                    if(!File::isDirectory($path_arquivo)){
+                        File::makeDirectory($path_arquivo, 0777, true, true);
+                    }
+                    $caminhoArq = $request->file('txt_caminho_termo')->storeAs('uploads_arquivos/pcva_parceria/termos/'.$dadosParcerias->txt_protocolo_aceite, $nomeArq, 'arquivos');                            
+                }        
+
+                $dadosParcerias->situacao_adesao_id = 2;
+                $dadosParcerias->dte_envio_termo = Date("Y-m-d");
+                $dadosParcerias->txt_caminho_termo =  $caminhoArq;
+
+                $salvouDados = $dadosParcerias->update();
+
+                if ($salvouDados){  
+                    Mail::to($dadosTermo->txt_email_usuario)->send(new ArquivoTermoEnviado($dadosTermo));
+                    Mail::to($dadosTermo->txt_email_ente_publico)->send(new ArquivoTermoEnviado($dadosTermo));
+                    DB::commit();
+                    flash()->sucesso("Sucesso", "Termo enviado com sucesso!"); 
+                        return redirect('/pcva_parcerias/protocolo/termo/'.$dadosParcerias->txt_protocolo_aceite);
+                    
+                } else {
+                    DB::rollBack();
+                    flash()->erro("Erro", "Erro ao enviar o arquivo!"); 
+                    return back();
+                    
+                }  
+                
+                return redirect('/pcva_parcerias/protocolo/termo/'.$request->txtProtocoloAceite);
+            }
+        }    
+    }
+  
  
 }
 

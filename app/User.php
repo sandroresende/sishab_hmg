@@ -2,16 +2,14 @@
 
 namespace App;
 
-use App\Codem\ResponsabilidadeDemanda;
-use App\ente_publico\VisualizacaoLegislacao;
-
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
+use App\Mod_selecao_demanda\EntePublico;
+use App\Mod_selecao_demanda\VisualizacaoLegislacao;
 
-use App\ente_publico\EntePublico;
-use App\prototipo\EntePublicoProponente;
-use App\prototipo\Permissoes;
+use App\Mod_prototipo\EntePublicoProponente;
+use App\Mod_prototipo\Permissoes;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -37,15 +35,7 @@ class User extends Authenticatable
         'password', 'remember_token',
     ];
 
-    public function observacoes()
-    {
-       return $this->hasMany(Observacao::class); //possui muitos
-    }
 
-    public function responsabilidadeDemanda()
-    {
-       return $this->belongsTo(ResponsabilidadeDemanda::class); //possui muitos
-    }
 
     public function tipoUsuario(){
         return $this->belongsTo(TipoUsuario::class);
@@ -70,17 +60,15 @@ class User extends Authenticatable
        return $this->belongsTo(Permissoes::class); //possui muitos
     }
 
-
-    
-
     public function isEntePublico() {
-        if(($this->tipo_usuario_id == 8) || ($this->tipo_usuario_id == 9) )
-        {
-            return true;
-        }else{
-            return false;
-        }
         
+            if(($this->tipo_usuario_id == 8) || ($this->tipo_usuario_id == 9) )
+            {
+                return true;
+            }else{
+                return false;
+            }
+      
         
     }
 

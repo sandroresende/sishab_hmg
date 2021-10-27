@@ -13,334 +13,247 @@
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 Auth::routes();
 
-//acesso publico
-Route::get('/home', 'HomeController@index');
 Route::get('/', 'WelcomeController@index');
-Route::get('/consultaRapida', 'HomeController@consultaRapida');
+
+Route::get('/home', 'HomeController@index')->name('home');
 
 
+//MENUS E SUBMENUS
+
+Route::get('/dados_programa', 'HomeController@dadosPrograma');
+
+//MENUS E SUBMENUS
 
 
-//SELEÇÃO
-Route::get('/selecao', 'SelecaoController@index');
-Route::post('/selecao/portaria', 'PropostasController@buscaPropostaPortaria');
-Route::get('/selecao/resumo/filtro', 'PropostasController@buscaResumoSelecao');
-Route::post('/selecao/resumo', 'PropostasController@resumoSelecao');
-Route::get('/selecao/resumo-download/{estado}', 'PropostasController@selecaoResumoExport'); //Rota do Excel de Selecao Resumo (Selecao)
-Route::get('/contratadas/resumo/filtro', 'PropostasController@buscaResumoContratadas');
+//DADOS ABERTOS
 
-//CONTRATADAS
-Route::post('/contratadas', 'PropostasController@propostasContratadas');
-Route::get('/contratadas-download/{regiao}/{estado}/{municipio}/{modalidade}/{ano}', 'PropostasController@export'); //Rota do Excel de Resumo Contratadas (Selecao)
+Route::get('/dados_abertos/sistema_habitacao', 'Operacoes\OperacoesController@dadosAbertos');
 
+//DADOS ABERTOS
 
+//SELEÇÃO PROPOSTAS - Schema: propostas_mcmv
+Route::get('/proposta/selecao', 'Propostas_mcmv\SelecaoController@index');
+Route::get('/selecao/{selecaoId}', 'Propostas_mcmv\SelecaoController@dadosSelecao');
 
-//PROPOSTAS
-Route::post('/propostas', 'PropostasController@propostasApresentadas');
-Route::get('/propostas-apresentadas-download/{estado}/{municipio}/{modalidade}/{selecao}', 'PropostasController@propostasApresentadasExport'); //Rota do Excel e Resumo Seleção (Selecao)
-Route::get('/proposta/{propostaID}/{numAPF}', 'PropostasController@proposta');
-Route::post('/proposta/apf', 'PropostasController@buscaPropostaAPF');
-Route::post('/proposta/proponente', 'PropostasController@buscaPropostaCNPJ');
-Route::get('/proposta/{propostaID}', 'PropostasController@proposta');
+Route::get('/proposta/{propostaID}', 'Propostas_mcmv\PropostasController@proposta');
+Route::post('/propostas', 'Propostas_mcmv\PropostasController@propostasApresentadas');
+Route::get('/proposta/{propostaID}/{numAPF}', 'Propostas_mcmv\PropostasController@proposta');
+Route::get('/propostas_apresentadas/{numAPF}', 'Propostas_mcmv\PropostasController@propostaApresentadasAPF');
 
+Route::post('/proposta/apf', 'Propostas_mcmv\PropostasController@propostaAPF');
+Route::get('/proposta/contratadas/resumo/filtro', 'Propostas_mcmv\PropostasController@buscaResumoContratadas');
+Route::post('/proposta/contratadas', 'Propostas_mcmv\PropostasController@propostasContratadas');
+Route::get('/proposta/{propostaID}/{numAPF}', 'Propostas_mcmv\PropostasController@proposta');
 
-//RETOMADA
-Route::get('/retomadas/filtro', 'RetomadaController@index')->middleware('can:eMaster');
-
-Route::post('/operacoes_retomadas', 'RetomadaController@operacoesRetomadas')->middleware('can:eMaster');
-Route::get('/operacao_retomada/{operacaoRetomadaId}', 'RetomadaController@operacaoRetomada')->middleware('can:eMaster');
-Route::get('/operacao_retomada/retomada/{RetomadaId}', 'RetomadaController@retomada')->middleware('can:eMaster');
-Route::post('/observacao/nova', 'RetomadaController@cadastrarNovaObservacao')->middleware('can:eMaster');
-Route::get('/retomada/observacao/delete/{observacaoId}', 'RetomadaController@deleteObservacao')->middleware('can:eMaster');
+Route::get('/proposta/selecao/resumo/filtro', 'Propostas_mcmv\PropostasController@buscaResumoSelecao');
+Route::post('/proposta/selecao/resumo', 'Propostas_mcmv\PropostasController@resumoSelecao');
 
 
-//acesso restrito
-
-//EXECUTIVO
-Route::get('/executivo/consulta/ibge', 'ResumoExecutivoController@consultaLimiteIBGE');
-Route::post('/executivo/limite/ibge', 'ResumoExecutivoController@buscaLimiteIbge');
-Route::get('/executivo/limite/filtro', 'ResumoExecutivoController@consultaLimite');
-Route::get('/executivo/filtro', 'ResumoExecutivoController@consultaRelExecutivo');
-Route::post('/executivo/relatorio', 'ResumoExecutivoController@buscaMilagroso');
-Route::get('/executivo/relatorio-download/{regiao}/{estado}/{municipio}/{rm_ride}/{ano_de}/{ano_ate}', 'ResumoExecutivoController@resumoMilagrosoExport'); // Rota do Excel Resumo Milagrosos (Relatorio Executivo)
-Route::post('/executivo/historico', 'ResumoExecutivoController@buscarExecutivoHistorico');
-Route::get('/executivo/historico/filtro', 'ResumoExecutivoController@filtroRelExecutivoHistorico');
-
-Route::get('/executivo/empreendimentos/filtro', 'ResumoExecutivoController@consultaEmpreendimento');
-Route::post('/executivo/empreendimentos', 'ResumoExecutivoController@buscaEmpreendimento');
-Route::get('/executivo/empreendimento/{operacaoId}', 'ResumoExecutivoController@dados_empreendimento');
-Route::get('/executivo/empreendimentos-download/{regiao}/{estado}/{municipio}/{modalidade}/{empreendimento}/{faixa}', 'ResumoExecutivoController@empreendimentosExport'); // Rota do Excel Resumo Empreendimentos
-Route::post('/executivo/historico', 'ResumoExecutivoController@buscarExecutivoHistorico');
-
-Route::get('/executivo/contratacao/filtro', 'ResumoExecutivoController@filtroSitucaoContratacao');
-Route::post('/executivo/contratacao', 'ResumoExecutivoController@dadosSitucaoContratacao');
-
-Route::get('/executivo/detalhar/modalidade/{modalidadeID}/{faixaID}/{municipioID}', 'ResumoExecutivoController@buscaEmpreendimentoModalidadeMilagro');
-Route::get('/executivo/download/{regiao}/{estado}/{municipio}/{rm_ride}/{ano_de}/{ano_ate}', 'ResumoExecutivoController@relatorioExecutivoExport'); // Rota do Excel Resumo Milagrosos (Relatorio Executivo)
-Route::get('/executivo/download/base', 'ResumoExecutivoController@baseExecutivoExport'); // Rota do Excel Resumo Milagrosos (Relatorio Executivo)
+//SELEÇÃO PROPOSTAS - Schema: propostas_mcmv
 
 
 //NOVO RELATORIO EXECUTIVO
-Route::get('/novo_executivo/filtro', 'ResumoExecutivoController@consultaRelExecutivoInt');
-Route::post('/novo_executivo/relatorio', 'ResumoExecutivoController@novoRelatorioExecutivo');
-Route::get('/novo_executivo/detalhar/modalidade/{modalidadeID}/{faixaID}/{municipioID}', 'EmpreendimentoController@buscaEmpreendimentoModalidadeExecutivo');
+Route::get('/operacoes/filtro', 'Operacoes\OperacoesController@consultaRelExecutivoInt');
+Route::post('/operacoes/relatorio', 'Operacoes\OperacoesController@dadosRelatorioExecutivo');
 
 
-Route::post('/entregas', 'ResumoExecutivoController@quantidadeEntregas');
-Route::get('/entregas/filtro', 'ResumoExecutivoController@filtroEntregas');
+//NOVO RELATORIO EXECUTIVO
 
-Route::get('/orcamentos/filtro', 'FinanceiroController@filtroOrcamentos');
-Route::post('/orcamentos', 'FinanceiroController@dadosOrcamentos');
+//SITUACAO PAGAMENTOS
 
-//BENEFICIARIOS
-Route::get('/beneficiarios/filtro', 'BeneficiarioController@filtro_beneficiarios');
-Route::post('/beneficiarios/consulta', 'BeneficiarioController@consulta_beneficiarios');
-
-// DETALHES DADOS CONTRATACAO
-Route::get('/executivo/relatorio/detalhesContratacao', 'ResumoExecutivoController@detalhesContratacao');
-Route::get('/novo_executivo/relatorio/detalhesContratacao', 'ResumoExecutivoController@detalhesContratacaoInt');
-
-
-// DETALHES DADOS PROPOSTAS
-Route::get('/executivo/relatorio/detalhesPropostas', 'ResumoExecutivoController@detalhesPropostas');
-
-//FINANCEIRO
-Route::get('/pagamento/quadro_resumo/filtro', 'FinanceiroController@consultaSolicitacoes');
-Route::post('/pagamento/quadroResumo', 'FinanceiroController@QuadroResumoSolicitacoes');
-Route::get('/pagamento/situacao/filtro', 'FinanceiroController@consultaSituacaoPagamento');
-Route::post('/pagamento/situacao', 'FinanceiroController@situacaoPagamento');
-Route::get('/pagamento/solicitacao/{apf}', 'FinanceiroController@solicitacoesAPF');
-
-Route::get('/externo/pagamento/situacao/filtro', 'ResumoExecutivoController@consultaSituacaoPagamento');
-Route::post('/externo/pagamento/situacao', 'ResumoExecutivoController@situacaoPagamento');
-
-
-//OFERTA
-Route::get('/protocolos/filtro', 'oferta\ProtocolosController@filtro_protocolos')->middleware('can:eOferta');
-Route::get('/protocolos/instituicao/filtro', 'oferta\ProtocolosController@filtro_protocolos_if')->middleware('can:eOferta');
-Route::post('/protocolos', 'oferta\ProtocolosController@protocolos')->middleware('can:eOferta');
-Route::post('/protocolos/instituicao', 'oferta\ProtocolosController@protocolos_instituicao')->middleware('can:eOferta');
-Route::get('/protocolo/{protocolo}', 'oferta\ProtocolosController@contratos_protocolo')->middleware('can:eOferta');
-Route::post('/protocolo', 'oferta\ProtocolosController@protocolo')->middleware('can:eOferta');
-Route::get('/contrato/{contrato}', 'oferta\ContratoController@dados_contrato')->middleware('can:eOferta');
-Route::get('/contratos/instituicao/filtro', 'oferta\ContratoController@filtro_contratos_if')->middleware('can:eOferta');
-Route::post('/contratos/instituicao', 'oferta\ContratoController@contratos_instituicao')->middleware('can:eOferta');
-
-Route::post('/contrato', 'oferta\ContratoController@contrato')->middleware('can:eOferta');
-Route::get('/contrato/{oferta}/{nis}', 'oferta\ContratoController@contrato_oferta')->middleware('can:eOferta');
-Route::get('/execucao/obras/filtro', 'oferta\ContratoController@filtroExecucaoObras')->middleware('can:eOferta');
-Route::post('/execucao/obras', 'oferta\ContratoController@execucaoObras')->middleware('can:eOferta');
-
-Route::get('/filtro_relatorio_devolucao', 'oferta\RemessasDevolucaoController@index');
-Route::post('/remessa_devolucao', 'oferta\RemessasDevolucaoController@remessaDevolucao');
-Route::get('/remessa_devolucao/download/{remessaDevolucaoId}', 'oferta\RemessasDevolucaoController@remessaDevolucaoExport'); // Rota do Excel Resumo Empreendimentos
+Route::get('/medicoes/situacao/filtro', 'Medicoes\MedicoesController@consultaSituacaoPagMedicoes');
+Route::post('/medicoes/situacao/pagamentos', 'Medicoes\MedicoesController@dadosSituacaoPagMedicoes');
 
 
 
-//CODEM
-Route::get('/codem/nova', 'codem\DemandaController@cadatrarDemanda')->middleware('can:eAdmin');
-Route::post('/demanda/nova', 'codem\DemandaController@salvarDemanda')->middleware('can:eAdmin');
-Route::get('/demanda/minhas', 'codem\DemandaController@minhasDemandas')->middleware('can:eAdmin');
-Route::get('/demanda/atrasadas/lista/{usuarioID}', 'codem\DemandaController@retornarDemandasAtrasadas')->middleware('can:eAdmin');
-Route::get('/demanda/usuario/lista', 'codem\DemandaController@retornarDemandasUsuario')->middleware('can:eAdmin');
-Route::get('/demanda/responder/usuario/lista', 'codem\DemandaController@retornarDemandasRespUsuario')->middleware('can:eAdmin');
+//SITUACAO PAGAMENTOS
+
+//EMPREENDIMENTOS
+Route::get('/empreendimentos/filtro', 'Operacoes\EmpreendimentosController@consultaEmpreendimentos');
+Route::post('/empreendimentos/consulta', 'Operacoes\EmpreendimentosController@consulta_empreendimentos');
+Route::get('/empreendimento/{numApf}', 'Operacoes\EmpreendimentosController@dados_empreendimento');
+
+//EMPREENDIMENTOS
 
 
-Route::get('/demanda/{demanda}', 'codem\DemandaController@abrirDemanda')->middleware('can:eAdmin');
-Route::post('/demanda/update', 'codem\DemandaController@updateDemanda')->middleware('can:eAdmin');
+//OFERTA PÚBLICA
+
+Route::get('/oferta_publica/protocolos/filtro', 'OfertaPublica\ProtocolosController@filtro_protocolos');
+Route::get('/oferta_publica/protocolos/instituicao/filtro', 'OfertaPublica\ProtocolosController@filtro_protocolos_if');
+Route::post('/oferta_publica/protocolos', 'OfertaPublica\ProtocolosController@protocolos');
+Route::post('/oferta_publica/protocolos/instituicao', 'OfertaPublica\ProtocolosController@protocolos_instituicao');
+Route::get('/oferta_publica/protocolos/instituicao/{instituicao}', 'OfertaPublica\ProtocolosController@dados_protocolos_instituicao');
+Route::get('/oferta_publica/protocolo/{instituicao}/{protocolo}', 'OfertaPublica\ProtocolosController@contratos_protocolo');
+Route::post('/oferta_publica/protocolo', 'OfertaPublica\ProtocolosController@protocolo');
+Route::get('/oferta_publica/contrato/{contrato}', 'OfertaPublica\ContratoController@dados_contrato');
+Route::get('/oferta_publica/contratos/instituicao/filtro', 'OfertaPublica\ContratoController@filtro_contratos_if');
+Route::post('/oferta_publica/contratos/instituicao', 'OfertaPublica\ContratoController@contratos_instituicao');
+
+Route::post('/oferta_publica/contrato', 'OfertaPublica\ContratoController@contrato');
+Route::get('/oferta_publica/contrato/{oferta}/{nis}', 'OfertaPublica\ContratoController@contrato_oferta');
+Route::get('/oferta_publica/filtro_execucao_obras', 'OfertaPublica\ContratoController@filtroExecucaoObras');
+Route::post('/oferta_publica/execucao_obras', 'OfertaPublica\ContratoController@execucaoObras');
+
+Route::get('/oferta_publica/filtro_relatorio_devolucao', 'OfertaPublica\RemessasDevolucaoController@index');
+Route::post('/oferta_publica/remessa_devolucao', 'OfertaPublica\RemessasDevolucaoController@remessaDevolucao');
+Route::get('/oferta_publica/remessa_devolucao/{remessaDevolucao}', 'OfertaPublica\RemessasDevolucaoController@dadosRemessaDevolucao');
+
+Route::get('/oferta_publica/remessa_devolucao/download/{remessaDevolucaoId}', 'OfertaPublica\RemessasDevolucaoController@remessaDevolucaoExport'); // Rota do Excel Resumo Empreendimentos
 
 
+//OFERTA PÚBLICA
 
-Route::resource('responsavel', 'codem\ResponsavelController');
+/////SELEÇÃO DE DEMANDA///////
+Route::get('/selecao_beneficiarios', 'Selecao_beneficiarios\EntePublicoController@index');
+Route::get('/selecao_beneficiarios/dirigente', 'Selecao_beneficiarios\DirigenteController@dirigenteEntePublico');
+Route::get('/selecao_beneficiarios/dirigente/cadastro','Selecao_beneficiarios\DirigenteController@cadastroDirigente');
+Route::post('/selecao_beneficiarios/dirigente/cadastrar', 'Selecao_beneficiarios\DirigenteController@cadastrarDirigente');
+Route::post('/selecao_beneficiarios/termo_aceite', 'Selecao_beneficiarios\EntePublicoController@aceiteTermo');
+Route::get('/selecao_beneficiarios/termo', 'Selecao_beneficiarios\EntePublicoController@abrirTermo');
+Route::post('/selecao_beneficiarios/termo_aceite', 'Selecao_beneficiarios\EntePublicoController@aceiteTermo');
+Route::post('/selecao_beneficiarios/primeiro_acesso', 'Selecao_beneficiarios\EntePublicoController@atualizarSenhaEntePublico');
+Route::get('/selecao_beneficiarios/documentos', 'Selecao_beneficiarios\AceiteLegislacaoController@index');
+Route::get('/selecao_beneficiarios/usuarios', 'UsuariosController@usuariosEntePublico');
+Route::post('/selecao_beneficiarios/dirigente/atualizar/{dirigente}', 'Selecao_beneficiarios\DirigenteController@atualizarDirigente');
+Route::get('/selecao_beneficiarios/selecao/demanda', 'Selecao_beneficiarios\EntePublicoController@selecaoHome');
 
-Route::post('/observacao/nova/demanda/{demanda}', 'codem\DemandaController@salvarObservacao')->middleware('can:eAdmin');
-Route::get('/observacao/delete/{observacaoId}', 'codem\DemandaController@deleteObservacao')->middleware('can:eAdmin');
+//arquivos
+Route::get('/selecao_beneficiarios/arquivo/{demandaGeradaId}/{arquivosId}', 'Selecao_beneficiarios\DemandasController@dadosArquivo');
 
-Route::post('/processo/novo/demanda/{demanda}', 'codem\DemandaController@salvarProcesso')->middleware('can:eAdmin');
-Route::get('/processo/delete/{processoId}', 'codem\DemandaController@deleteProcesso')->middleware('can:eAdmin');
+Route::get('/selecao_beneficiarios/arquivos', 'Selecao_beneficiarios\DemandasController@arquivosEnte');
+Route::post('/selecao_beneficiarios/download/arquivo/{arquivosId}', 'Selecao_beneficiarios\DemandasController@downloadArquivo');
 
-Route::post('/documento/novo/demanda/{demanda}', 'codem\DemandaController@salvarDocumento')->middleware('can:eAdmin');
-Route::get('/documento/delete/{documentoId}', 'codem\DemandaController@deleteDocumento')->middleware('can:eAdmin');
+//demandas
+Route::get('selecao_beneficiarios/demandas', 'Selecao_beneficiarios\DemandasController@index');
 
-Route::post('/arquivo/novo/demanda/{demanda}', 'codem\DemandaController@salvarArquivo')->middleware('can:eAdmin');
-Route::get('/arquivo/delete/{arquivoId}', 'codem\DemandaController@deleteArquivo')->middleware('can:eAdmin');
-
-
-//empreendimentos
-Route::get('/empreendimentos/filtro', 'EmpreendimentoController@filtro_empreendimentos');
-Route::post('/empreendimentos/consulta', 'EmpreendimentoController@consulta_empreendimentos');
-Route::get('/empreendimentos/{operacaoId}', 'EmpreendimentoController@dados_empreendimento');
-Route::get('/empreendimento/download/{operacaoId}', 'EmpreendimentoController@downloadEmpreendimentoAPF'); //Rota do Excel e Resumo Seleção (Selecao)
-
-Route::get('/empreendimentos/contratados/download/{estado}/{municipio}', 'EmpreendimentoController@donwloadEmpreendimentosContratados'); // Rota do Excel Resumo Empreendimentos
-
-
-//empreendimentos
-Route::get('/vinculadas/filtro', 'VinculadasController@filtro_pac');
-Route::post('/vinculadas/consulta', 'VinculadasController@consulta_vinculadas');
-Route::get('/vinculadas/projeto/{projetoId}', 'VinculadasController@dados_projeto');
+/////SELEÇÃO DE DEMANDA///////
 
 
-//painel
-Route::get('/resumo/contratacao/filtro', 'QuadrosResumosController@filtro_contratacao');
-Route::post('/painel/contratacao', 'QuadrosResumosController@consulta_contratacao');
+/////ADMIN SELECAO DEMANDA///////
+Route::get('/admin/selecao_demanda/arquivos/gerados/filtro', 'Selecao_beneficiarios\Admin\PainelDemandasController@filtroArquivosGerados');
+Route::post('/admin/selecao_demanda/arquivos/gerados', 'Selecao_beneficiarios\Admin\PainelDemandasController@arquivosGerados');
+Route::get('/admin/selecao_demanda/arquivo/{demandaGeradaId}/{arquivosId}', 'Selecao_beneficiarios\Admin\PainelDemandasController@dadosArquivo');
+Route::get('/admin/selecao_demanda/filtro', 'Selecao_beneficiarios\Admin\PainelDemandasController@filtroEntePublico');
+Route::post('/admin/selecao_demanda/entePublicos', 'Selecao_beneficiarios\Admin\PainelDemandasController@lista_entePublicos');
+Route::get('/admin/selecao_demanda/ente_publico/{entePublico}', 'Selecao_beneficiarios\Admin\PainelDemandasController@dadosEntePublico');
+Route::get('/admin/selecao_demanda/usuarios/entes/filtro', 'Selecao_beneficiarios\Admin\PainelDemandasController@filtroUsuariosEntePublico');
+Route::post('/admin/selecao_demanda/usuarios/entes', 'Selecao_beneficiarios\Admin\PainelDemandasController@usuariosEntePublico');
+Route::get('/admin/selecao_demanda/usuario/{usuario}', 'Selecao_beneficiarios\Admin\PainelDemandasController@dadosUsuario');
 
-Route::get('/resumo/contratos_vigentes/filtro', 'QuadrosResumosController@filtro_contratos_vigentes');
-Route::post('/painel/vigentes', 'QuadrosResumosController@consulta_vigentes');
+/////ADMIN SELECAO DEMANDA///////
 
-Route::get('/resumo/contratacao/ano/filtro', 'QuadrosResumosController@filtro_contratacao_ano');
-Route::post('/painel/contratacao/ano', 'QuadrosResumosController@consulta_contratacao_ano');
-
-Route::get('/resumo/entrega/ano/filtro', 'QuadrosResumosController@filtro_entrega_ano');
-Route::post('/painel/entrega/ano', 'QuadrosResumosController@consulta_entrega_ano');
-
-Route::get('/resumo/paralisadas/filtro', 'QuadrosResumosController@filtro_paralisadas');
-Route::post('/painel/paralisadas', 'QuadrosResumosController@consulta_paralisadas');
-
-Route::get('/briefing/novo/filtro', 'BriefingController@consultaBriefingNovo');
-Route::post('/briefing/novo/dados', 'BriefingController@briefingNovo');
-Route::get('/briefing/novo/pergunta1', 'BriefingController@briefingNovoPergunta1');
-Route::get('/briefing/novo/pergunta2', 'BriefingController@briefingNovoPergunta2');
-Route::get('/briefing/novo/pergunta3', 'BriefingController@briefingNovoPergunta3');
-Route::get('/briefing/novo/pergunta4', 'BriefingController@briefingNovoPergunta4');
-Route::get('/briefing/novo/pergunta5', 'BriefingController@briefingNovoPergunta5');
-Route::get('/briefing/novo/pergunta6', 'BriefingController@briefingNovoPergunta6');
-Route::get('/briefing/novo/pergunta9', 'BriefingController@briefingNovoPergunta9');
-Route::get('/briefing/novo/pergunta10', 'BriefingController@briefingNovoPergunta10');
-Route::get('/briefing/novo/tabela', 'BriefingController@briefingNovoTabela');
-
-
-Route::get('/briefing/antigo/filtro', 'BriefingController@consultaBriefingAntigo');
-Route::get('/briefing/tabelao/filtro', 'BriefingController@consultaBriefingTabelao');
-
-
-//acesso ente
-Route::get('/entePublico', 'ente_publico\EntePublicoController@index');
-Route::post('/entePublico/primeiro_acesso', 'ente_publico\EntePublicoController@atualizarSenhaEntePublico');
-Route::post('/entePublico/termo_aceite', 'ente_publico\EntePublicoController@aceiteTermo');
-Route::get('/entePublico/usuario/novo', 'UsuariosController@cadastroUsuarioEnte');
-Route::post('/usuario/ente_publico/salvar', 'UsuariosController@salvarUsuarioEnte');
-Route::get('/usuario/novo', 'UsuariosController@cadastroUsuario');
-
-
-
-Route::get('/documentos', 'ente_publico\AceiteLegislacaoController@index');
-
-Route::get('/selecao/demanda', 'ente_publico\EntePublicoController@selecaoHome');
-Route::get('/entePublico/termo', 'ente_publico\EntePublicoController@abrirTermo');
+/////ADMIN PROTOTIPO///////
+Route::get('/admin/prototipo/permissoes', 'Prototipo\Admin\PainelPrototipoController@listaPermissoes');
+Route::get('/admin/prototipo/permissoes/consulta', 'Prototipo\Admin\PainelPrototipoController@consultaPermissoes');
+Route::post('/admin/prototipo/permissoes/situacao', 'Prototipo\Admin\PainelPrototipoController@situacaoPermissoes');
+Route::get('/admin/prototipo/consulta', 'Prototipo\Admin\PainelPrototipoController@consultaPrototipos');
+Route::post('/admin/prototipos', 'Prototipo\Admin\PainelPrototipoController@listaPrototipos');
+Route::get('/admin/prototipo/show/levantamento/{prototipo}', 'Prototipo\Admin\PainelPrototipoController@dadosLevantamento');
+Route::get('/admin/prototipo/enviada/{prototipoID}', 'Prototipo\Admin\PainelPrototipoController@habilitarProposta');
+Route::post('/admin/prototipo/habilitar/', 'Prototipo\Admin\PainelPrototipoController@finalizarAnalise');
+Route::get('/admin/prototipo/usuarios', 'Prototipo\Admin\PainelPrototipoController@usuariosPrototipo');
+Route::get('/admin/prototipo/usuario/{usuario}', 'Prototipo\Admin\PainelPrototipoController@dadosUsuario');
 
 
 
+/////ADMIN PROTOTIPO///////
 
 
-//usuarios
+///// PROTOTIPO///////
+Route::get('/prototipo/mensagem', 'WelcomeController@verMensagem');
+Route::get('/prototipo/registro', 'WelcomeController@solicitarRegistro');
+Route::post('/prototipo/registro/salvar', 'WelcomeController@salvarRegistro');
+Route::get('/prototipo/resultado', 'WelcomeController@resultadoAtas');
+
+Route::get('/prototipo', 'Prototipo\PrototipoController@index');
+Route::get('/prototipo/termo', 'Prototipo\PrototipoController@abrirTermo');
+Route::post('/prototipo/termo_aceite', 'Prototipo\PrototipoController@aceiteTermo');
+Route::get('/propostas', 'Prototipo\PrototipoController@listaPrototipos');
+Route::get('/prototipo/excluir/{prototipo}', 'Prototipo\PrototipoController@excluirPrototipo');
+Route::get('/prototipo/perguntas/{prototipo}', 'Prototipo\PrototipoController@responderPerguntas');
+Route::get('/prototipo/levantamento/{prototipo}', 'Prototipo\PrototipoController@introducaoLevantamento');
+Route::get('/prototipo/novo', 'Prototipo\PrototipoController@novoPrototipo');
+Route::post('/prototipo/salvar', 'prototipo\PrototipoController@salvarPrototipo');
+Route::get('/prototipo/iniciar/levantamento/{prototipo}', 'Prototipo\PrototipoController@iniciarLevantamento');
+Route::get('/prototipo/show/levantamento/{prototipo}', 'Prototipo\PrototipoController@dadosLevantamento');
+Route::get('/prototipo/enviar/{prototipo}', 'Prototipo\PrototipoController@concluirPreenchimento');
+
+
+Route::get('/prototipo/iniciar/caracterizacaoTerreno/{prototipo}', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoParte1');
+Route::get('/prototipo/iniciar/caracterizacaoTerreno/parte2/{prototipo}', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoParte2');
+Route::get('/prototipo/iniciar/caracterizacaoTerreno/parte3/{prototipo}', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoParte3');
+Route::post('/prototipo/iniciar/caracterizacaoTerreno/parte1/salvar', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoSalvarParte1');
+Route::post('/prototipo/iniciar/caracterizacaoTerreno/parte2/salvar', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoSalvarParte2');
+Route::post('/prototipo/iniciar/caracterizacaoTerreno/parte3/salvar', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoSalvarParte3');
+
+
+Route::post('/prototipo/editar/caracterizacaoTerreno/parte1', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoEditarParte1');
+Route::post('/prototipo/editar/caracterizacaoTerreno/parte2', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoEditarParte2');
+Route::post('/prototipo/editar/caracterizacaoTerreno/parte3', 'Prototipo\CaracterizacaoTerrenoController@caracterizacaoTerrenoEditarParte3');
+
+Route::post('/prototipo/caracterizacaoTerreno/planta/adicionar', 'Prototipo\CaracterizacaoTerrenoController@adicionarPlanta');
+Route::get('/prototipo/caracterizacao_terreno/editar/{tabCaracterizacaoTerreno}', 'Prototipo\CaracterizacaoTerrenoController@editarCaracTerreno');
+
+Route::get('/prototipo/iniciar/infraestruturaBasica/{prototipo}', 'Prototipo\InfraestruturaBasicaController@infraestruturaBasica');
+Route::post('/prototipo/iniciar/infraestruturaBasica/salvar', 'Prototipo\InfraestruturaBasicaController@infraestruturaBasicaSalvar');
+Route::get('/prototipo/infraestruturaBasica/editar/{tabInfraestrututaBasica}', 'prototipo\InfraestruturaBasicaController@editarInfraBasica');
+Route::post('/prototipo/editar/infraestruturaBasica/salvar', 'prototipo\InfraestruturaBasicaController@infraestrututaBasicaUpdate');
+
+Route::get('/prototipo/iniciar/insercaoUrbana/{prototipo}', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaParte1');
+Route::get('/prototipo/iniciar/insercaoUrbana/{prototipo}', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaParte1');
+Route::get('/prototipo/iniciar/insercaoUrbana/parte2/{prototipo}', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaParte2');
+Route::post('/prototipo/iniciar/insercaoUrbana/parte1/salvar', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaSalvarParte1');
+Route::post('/prototipo/iniciar/insercaoUrbana/parte2/salvar', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaSalvarParte2');
+Route::post('/prototipo/insercaoUrbana/mapa/adicionar', 'Prototipo\InsercaoUrbanaController@adicionarMapa');
+Route::post('/prototipo/insercaoUrbana/rota/adicionar', 'Prototipo\InsercaoUrbanaController@adicionarRota');
+
+Route::get('/prototipo/insercaoUrbana/editar/{tabInsercaoUrbana}', 'Prototipo\InsercaoUrbanaController@editarInsercaoUrbana');
+Route::post('/prototipo/editar/insercaoUrbana/salvar', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaUpdate');
+
+Route::post('/prototipo/editar/insercaoUrbana/parte1', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaEditarParte1');
+Route::post('/prototipo/editar/insercaoUrbana/parte2', 'Prototipo\InsercaoUrbanaController@insercaoUrbanaEditarParte2');
+
+Route::get('/prototipo/insercaoUrbana/arquivoMapa/excluir/{arquivoMapaId}', 'Prototipo\InsercaoUrbanaController@excluirMapa');
+Route::get('/prototipo/insercaoUrbana/arquivoRota/excluir/{arquivoMapaId}', 'Prototipo\InsercaoUrbanaController@excluirRota');
+Route::get('/prototipo/caracTerreno/arquivo/excluir/{arquivoPlantaId}', 'Prototipo\CaracterizacaoTerrenoController@excluirPlanta');
+
+///// PROTOTIPO///////
+
+
+//////////////usuarios//////////////
 Route::get('/usuario/novo', 'UsuariosController@cadastroUsuario');
 
 Route::post('/usuario/salvar', 'UsuariosController@salvarUsuario');
 Route::post('/usuario/excluir/{usuario}', 'UsuariosController@excluirUsuario');
 Route::get('/usuario/{usuario}', 'UsuariosController@dadosUsuario');
-
-
-Route::get('/entePublico/usuarios', 'UsuariosController@usuariosEntePublico');
-
-Route::get('/entePublico/dirigente', 'ente_publico\DirigenteController@dirigenteEntePublico');
+Route::post('/usuario/atualizar/{usuario}', 'UsuariosController@updateUsuario');
 
 
 
+//////////////usuarios//////////////
 
-//dirigente
-Route::post('/dirigente/cadastrar', 'ente_publico\DirigenteController@cadastrarDirigente');
-Route::post('/dirigente/atualizar/{dirigente}', 'ente_publico\DirigenteController@atualizarDirigente');
+///// ADMIN PCVA PARCERIAS///////
 
-Route::get('dirigente/cadastro','ente_publico\DirigenteController@cadastroDirigente');
+Route::get('/admin/pcva_parcerias/termo/filtro', 'pcva_parcerias\DadosParceriasController@consultaTermoAdesao');
+Route::post('admin/pcva_parcerias/termo/pesquisar', 'pcva_parcerias\DadosParceriasController@listaTermosAdesao');
+Route::post('admin/pcva_parcerias/termo/validar', 'pcva_parcerias\DadosParceriasController@validarTermoAdesao');
+Route::get('admin/pcva_parcerias/termo/protocolo/{numProtocolo}', 'pcva_parcerias\DadosParceriasController@visualizarTermoAdesao');
+Route::get('admin/pcva_parcerias/termo/cancelar/{dadosParceria}', 'pcva_parcerias\DadosParceriasController@cancelarAnaliseTermo');
+Route::get('/admin/pcva_parcerias/resumoSituacao/filtro', 'pcva_parcerias\DadosParceriasController@filtroSituacaoTermo');
+Route::post('admin/pcva_parcerias/resumoSituacao/pesquisar', 'pcva_parcerias\DadosParceriasController@visualizarSituacaoTermo');
 
+///// ADMIN PCVA PARCERIAS///////
 
-//legislacao
-Route::post('/aceite/{legislacao}', 'ente_publico\AceiteLegislacaoController@visualizarLegislacao');
-
-//demandas
-Route::get('/demandas', 'ente_publico\DemandasController@index');
-
-
-//arquivos
-Route::get('/arquivo/{demandaGeradaId}/{arquivosId}', 'ente_publico\DemandasController@dadosArquivo');
-
-Route::get('/arquivos', 'ente_publico\DemandasController@arquivosEnte');
-Route::post('/download/arquivo/{arquivosId}', 'ente_publico\DemandasController@downloadArquivo');
-
-Route::get('/admin/arquivo/{demandaGeradaId}/{arquivosId}', 'PainelDemandasController@dadosArquivo');
-Route::get('/admin/arquivos/gerados', 'PainelDemandasController@arquivosGerados');
-
-//admin
-Route::get('/admin/usuarios/entes', 'PainelDemandasController@usuariosEntePublico')->middleware('can:eSNHDemanda');
-Route::get('/admin/usuarios/prototipos', 'prototipo\PainelPrototipoController@usuariosPrototipo')->middleware('can:eSNHDemanda');
-Route::get('/admin/usuario/{usuario}', 'PainelDemandasController@dadosUsuario')->middleware('can:eSNHDemanda');
-Route::post('/admin/entePublicos', 'PainelDemandasController@lista_entePublicos')->middleware('can:eSNHDemanda');
-Route::get('/admin/entes/{entePublico}', 'PainelDemandasController@dadosEntePublico')->middleware('can:eSNHDemanda');
-Route::get('/admin/entePublico/filtro', 'PainelDemandasController@filtroEntePublico')->middleware('can:eSNHDemanda');
-
-Route::get('/admin/permissoes/prototipos', 'prototipo\PermissoesController@listaPermissoes')->middleware('can:eSNHDemanda');
-
-Route::get('/admin/permissao/deferir/{permissao}', 'prototipo\PermissoesController@deferirPermissao');
-Route::get('/admin/permissao/bloquear/{permissao}', 'prototipo\PermissoesController@bloquearPermissao');
-Route::get('/admin/permissao/desbloquear/{permissao}', 'prototipo\PermissoesController@desbloquearPermissao');
-Route::get('/admin/permissao/indeferir/abrir/{permissao}', 'prototipo\PermissoesController@abrirIndeferirPermissao');
-Route::post('/admin/permissao/indeferir/salvar', 'prototipo\PermissoesController@indeferirPermissao');
-
-Route::get('/prototipo', 'prototipo\PrototipoController@index');
-Route::get('/prototipo/registro', 'WelcomeController@solicitarRegistro');
-Route::post('/prototipo/registro/salvar', 'WelcomeController@salvarRegistro');
-
-Route::get('/prototipo/termo', 'prototipo\PrototipoController@abrirTermo');
-Route::post('/prototipo/termo_aceite', 'prototipo\PrototipoController@aceiteTermo');
-
-
-//Route::get('/prototipos/usuario/{usuario}', 'prototipo\PrototipoController@responderPerguntas');
-
-Route::get('/prototipo/perguntas/{prototipo}', 'prototipo\PrototipoController@responderPerguntas');
-Route::get('/prototipos/usuario/{usuario}', 'prototipo\PrototipoController@listaPrototipos');
-
-Route::get('/prototipo/iniciar/caracterizacaoTerreno/{prototipo}', 'prototipo\PrototipoController@caracterizacaoTerreno');
-Route::post('/prototipo/iniciar/caracterizacaoTerreno/salvar', 'prototipo\PrototipoController@caracterizacaoTerrenoSalvar');
-Route::get('/prototipo/iniciar/infraestruturaBasica/{prototipo}', 'prototipo\PrototipoController@infraestruturaBasica');
-Route::post('/prototipo/iniciar/infraestruturaBasica/salvar', 'prototipo\PrototipoController@infraestruturaBasicaSalvar');
-Route::get('/prototipo/iniciar/insercaoUrbana/{prototipo}', 'prototipo\PrototipoController@insercaoUrbana');
-Route::post('/prototipo/iniciar/insercaoUrbana/salvar', 'prototipo\PrototipoController@insercaoUrbanaSalvar');
-Route::get('/prototipo/iniciar/concepcaoProjeto/{prototipo}', 'prototipo\PrototipoController@concepcaoProjeto');
-Route::post('/prototipo/iniciar/concepcaoProjeto/salvar', 'prototipo\PrototipoController@concepcaoProjetoSalvar');
-Route::get('/prototipo/enviar/{prototipo}', 'prototipo\PrototipoController@concluirPreenchimento');
-
-Route::get('/prototipo/levantamento/{prototipo}', 'prototipo\PrototipoController@introducaoLevantamento');
-Route::get('/prototipo/iniciar/levantamento/{prototipo}', 'prototipo\PrototipoController@iniciarLevantamento');
-Route::get('/prototipo/show/{prototipo}', 'prototipo\PrototipoController@dadosPrototipo');
-Route::get('/prototipo/show/levantamento/{prototipo}', 'prototipo\PrototipoController@dadosLevantamento');
-Route::get('/prototipo/novo', 'prototipo\PrototipoController@novoPrototipo');
-Route::post('/prototipo/salvar', 'prototipo\PrototipoController@salvarPrototipo');
-Route::get('/prototipo/permissoes', 'prototipo\PrototipoController@minhasPermissoes');
-Route::get('/prototipo/permissao/nova', 'prototipo\PermissoesController@novaPermissao');
-Route::post('/prototipo/oficio/novo', 'prototipo\PermissoesController@salvarNovoOficio');
-
-Route::get('/prototipo/caracterizacao_terreno/editar/{tabCaracterizacaoTerreno}', 'prototipo\PrototipoController@editarCaracTerreno');
-Route::post('/prototipo/editar/caracterizacaoTerreno/salvar', 'prototipo\PrototipoController@caracterizacaoTerrenoUpdate');
-
-Route::get('/prototipo/infraestruturaBasica/editar/{tabInfraestrututaBasica}', 'prototipo\PrototipoController@editarInfraBasica');
-Route::post('/prototipo/editar/infraestruturaBasica/salvar', 'prototipo\PrototipoController@infraestrututaBasicaUpdate');
-
-Route::get('/prototipo/insercaoUrbana/editar/{tabInsercaoUrbana}', 'prototipo\PrototipoController@editarInsercaoUrbana');
-Route::post('/prototipo/editar/insercaoUrbana/salvar', 'prototipo\PrototipoController@insercaoUrbanaUpdate');
-
-Route::get('/prototipo/concepcaoProjeto/editar/{tabconcepcaoProjeto}', 'prototipo\PrototipoController@editarConcepcaoProjeto');
-Route::post('/prototipo/editar/concepcaoProjeto/salvar', 'prototipo\PrototipoController@concepcaoProjetoUpdate');
-
-
-
-
-
-
-
-
-
+///// PCVA PARCERIAS///////
+Route::get('/pcva_parcerias/solicitar_adesao', 'WelcomeController@solicitarAdesaoParcerias');
+Route::post('/pcva_parcerias/aceitar_adesao', 'WelcomeController@aceitarAdesaoParcerias');
+Route::get('/pcva_parcerias/protocolo/termo/{txtProtocoloAceite}', 'WelcomeController@visualizarTermoParceira');
+Route::post('/pcva_parcerias/termo/protocolo/', 'WelcomeController@filtroTermoParceira');
+Route::get('/pcva_parcerias/termo/consultar', 'WelcomeController@consultarTermoParceira');
+Route::get('/pcva_parcerias/validacao/filtro', 'WelcomeController@filtroValidacaoTermoParceira');
+Route::post('/pcva_parcerias/termo/validar', 'WelcomeController@validarTermoParceira');
+///// PCVA PARCERIAS///////

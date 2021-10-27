@@ -1,8 +1,24 @@
 <?php
-use App\oferta\Contrato;
-use App\oferta\FaixaExecucao;
-use App\codem\RelacaoDemanda;
+use App\Mod_sishab\OfertaPublica\Contrato;
+use App\Mod_sishab\OfertaPublica\FaixaExecucao;
+
+
+use App\Mod_sishab\Operacoes\PosicaoDados;
+
+use App\Mod_sishab\MedicoesObras\SituacaoMedicoes;
+
 use Illuminate\Support\Facades\Auth;
+
+
+function getPosicaoDadosOperacoes(){
+    $posicaoDados = PosicaoDados::first();
+    return Carbon\Carbon::parse($posicaoDados->dte_posicao)->format('d/m/Y');
+}
+
+function getPosicaoDadosMedicoes(){
+    $posicaoDados = SituacaoMedicoes::max('dte_movimento');
+    return Carbon\Carbon::parse($posicaoDados)->format('d/m/Y');
+}
 
 function flash($titulo = null, $mensagem = null)
 {
@@ -23,14 +39,7 @@ function getMediaPercProtocolo($protocoloId){
 	return Contrato::where('protocolo_id',$protocoloId)->avg('vlr_percentual_obra');        
 }
 
-function retornAlertaDemandaAtrasa(){
-	
-	$where[] = ['user_id',Auth::user()->id];
-	$where[] = ['bln_visualizada',false];
-	$demandaUser = RelacaoDemanda::where($where)
-										->get();
-	return 1;
-}
+
 
 function adicionarDiasData($data, $dias, $meses = 0, $ano = 0)
 {

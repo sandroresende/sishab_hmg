@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\prototipo;
+namespace App\Http\Controllers\Prototipo;
+
+use DB;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -8,8 +10,31 @@ use Illuminate\Support\Facades\Auth;
 
 use App\User;
 
-use App\Permissoes;
+use App\Mod_prototipo\Permissoes;
 use App\StatusPermissoes;
+
+use App\Mod_prototipo\Prototipo;
+use App\Mod_prototipo\EntePublicoProponente;
+use App\Mod_prototipo\TabCaracterizacaoTerreno;
+use App\Mod_prototipo\PlantaTerreno;
+use App\Mod_prototipo\TabInfraestrututaBasica;
+use App\Mod_prototipo\TabInsercaoUrbana;
+use App\Mod_prototipo\MapaInsercaoUrbana;
+use App\Mod_prototipo\TabConcepcaoProjeto;
+use App\Mod_prototipo\ViewTabelaPontuacao;
+use App\Mod_prototipo\PontuacaoCriteriosPrototipo;
+use App\Mod_prototipo\SituacaoTerreno;
+use App\Mod_prototipo\ViewPontuacaoCriterios;
+use App\Mod_prototipo\ViewResumoPermissoes;
+use App\Mod_prototipo\ViewSituacaoUsuarioPrototipo;
+use App\Mod_prototipo\ViewCriteriosHabilitacaoAuto;
+use App\Mod_prototipo\RequisitosHabilitacao;
+use App\Mod_prototipo\HabilitacaoPrototipo;
+
+use App\Mod_prototipo\RotaInsercaoUrbana;
+
+use App\Uf;
+use App\Municipio;
 
 class PainelPrototipoController extends Controller
 {
@@ -25,29 +50,37 @@ class PainelPrototipoController extends Controller
 public function usuariosPrototipo(){
     
     $where = [];
-    $where[] = ['users.modulo_sistema_id',3];   
-   // $where[] = ['tipo_usuario_id',9];   
+    $where[] = ['modulo_sistema_id',3];   
+    //$where[] = ['tipo_usuario_id',9];   
 
-     $usuarios = User::leftjoin('opc_tipo_usuario','users.tipo_usuario_id', '=','opc_tipo_usuario.id')
-                            ->leftjoin('opc_status_usuario','users.status_usuario_id', '=','opc_status_usuario.id')
-                            ->leftjoin('tab_ente_publico','users.ente_publico_id', '=','tab_ente_publico.id')
-                            ->leftjoin('tab_municipios','tab_ente_publico.municipio_id', '=','tab_municipios.id')
-                            ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                            ->leftjoin('tab_regiao', 'tab_uf.regiao_id', '=', 'tab_regiao.id') 
-                            ->leftjoin('tab_permissoes','users.id', '=','tab_permissoes.user_id')
-                            ->leftjoin('opc_status_permissao','tab_permissoes.status_permissao_id', '=','opc_status_permissao.id')
-                            ->select('txt_sigla_uf','ds_municipio','txt_regiao','txt_ente_publico','users.id as usuario_id',
-                                     'email','name','txt_tipo_usuario','txt_status_usuario','dte_aceite_termo','txt_status_permissao')
+      $usuarios = ViewSituacaoUsuarioPrototipo::where($where)
                             ->orderBy('txt_sigla_uf', 'asc')
                             ->orderBy('ds_municipio', 'asc')
                             ->orderBy('name', 'asc')
-                            ->where($where)->get();
+                            ->get();
 
     return view('admin.lista_usuarios_prototipo', compact('usuarios'));  
  
 }
+public function consultaPermissoes(){
+    
+    $usuario = Auth::user();   
+
+    if($usuario->tipo_usuario_id == 8 || $usuario->tipo_usuario_id == 9){
+    flash()->erro('Sem permissão', "Você não tem permissão para acessar essa página");
+    return redirect('/prototipo');
+    }
+
+     $resumoPermissoes = ViewResumoPermissoes::get();
+
+
+    return view('admin.consulta_permissoes',compact('resumoPermissoes'));
+
+}
 
 public function listaPermissoes(){
+
+   
 
        $permissoes = Permissoes::join('users','users.id','=','tab_permissoes.user_id')
                                     ->leftjoin('tab_ente_publico_proponente','users.ente_publico_id', '=','tab_ente_publico_proponente.id')
@@ -96,6 +129,367 @@ public function listaPermissoes(){
     return view('prototipo.permissoes_prototipo ',compact('permissoesAnalise','permissoesDeferida','permissoesIndeferida','permissoesCancelada','cabecalhoTabAnalise','cabecalhoTab'));
 
 }
+
+public function consultaPrototipos(){
+    
+        $usuario = Auth::user();   
+
+        if($usuario->tipo_usuario_id == 8 || $usuario->tipo_usuario_id == 9){
+        flash()->erro('Sem permissão', "Você não tem permissão para acessar essa página");
+        return redirect('/prototipo');
+        }
+
+        return view('prototipo.consulta_prototipos');
+
+    }
+
+    public function listaPrototipos(Request $request){
+    
+        $usuario = Auth::user();   
+
+        if($usuario->tipo_usuario_id == 8 || $usuario->tipo_usuario_id == 9){
+        flash()->erro('Sem permissão', "Você não tem permissão para acessar essa página");
+        return redirect('/prototipo');
+        }
+
+        $where = [];
+
+        $estado = [];
+        if($request->estado){
+            $where[] = ['tab_municipios.uf_id', $request->estado];
+            $estado = Uf::where('id',$request->estado)->firstOrFail();
+        
+        }
+
+        $municipio = [];
+        if($request->municipio){
+            $where[] = ['tab_prototipo.municipio_id', $request->municipio];
+            $municipio = Municipio::where('id',$request->municipio)->firstOrFail();      
+        }
+
+
+    $prototipos = Prototipo::join('opc_situacao_prototipo', 'opc_situacao_prototipo.id','tab_prototipo.situacao_prototipo_id')
+                                ->leftjoin('tab_ente_publico_proponente','tab_prototipo.ente_publico_proponente_id', '=','tab_ente_publico_proponente.id')
+                                ->leftjoin('tab_municipios','tab_prototipo.municipio_id', '=','tab_municipios.id')
+                                ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+                                ->select('tab_uf.txt_sigla_uf','tab_municipios.ds_municipio','tab_ente_publico_proponente.txt_ente_publico','tab_prototipo.*','txt_situacao_prototipo')
+                                ->where($where)
+                                ->orderBy('tab_uf.txt_sigla_uf')
+                                ->orderBy('tab_municipios.ds_municipio')
+                                ->orderBy('tab_ente_publico_proponente.txt_ente_publico')
+                                ->orderBy('tab_prototipo.created_at')
+                                ->get();
+
+    return view('admin.lista_prototipos',compact('prototipos'));
+    }
+
+    public function dadosLevantamento($prototipo_id){
+       
+        $usuarioLogado = Auth::user();   
+
+        if($usuarioLogado->tipo_usuario_id == 8 || $usuarioLogado->tipo_usuario_id == 9){
+        flash()->erro('Sem permissão', "Você não tem permissão para acessar essa página");
+        return redirect('/prototipo');
+        }
+        
+          $prototipo = Prototipo::find($prototipo_id); 
+          $prototipo->load('situacaoPrototipo');   
+
+          $usuario = User::where('ente_publico_id',$prototipo->ente_publico_proponente_id )->firstOrFail();
+         $ente = EntePublicoProponente::where('id',$prototipo->ente_publico_proponente_id)->firstOrFail();      
+         
+         $tabelaPontos = ViewTabelaPontuacao::where('prototipo_id',$prototipo_id)->get();
+         
+         $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+               ->select('txt_sigla_uf','ds_municipio')
+               ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();   
+
+               //$prototipo = Prototipo::where('ente_publico_proponente_id',$usuario->ente_publico_id)->first();   
+                
+               if($prototipo->situacao_prototipo_id >= 6){
+                     $habilitacao = HabilitacaoPrototipo::where('prototipo_id',$prototipo_id)->first();
+                     $criteriosHabilitacao =  ViewCriteriosHabilitacaoAuto::where('prototipo_id', $prototipo_id)->first();
+               }else{
+                $habilitacao = null;
+                $criteriosHabilitacao = null;
+               }
+               
+
+                $caracTerreno = TabCaracterizacaoTerreno::leftjoin('opc_titularidade_terreno','opc_titularidade_terreno.id','tab_caracterizacao_terreno.titularidade_terreno_id')
+                                                                ->leftjoin('opc_tipo_risco','opc_tipo_risco.id','tab_caracterizacao_terreno.tipo_risco_id')
+                                                                ->select('tab_caracterizacao_terreno.*','opc_titularidade_terreno.txt_titularidade_terreno','opc_tipo_risco.txt_tipo_risco')
+                                                                ->where('prototipo_id',$prototipo->id)->first();        
+                
+                $plantaTerreno = PlantaTerreno::where('caracterizacao_terreno_id', $caracTerreno->id)->get();
+               
+                $infraBasica = TabInfraestrututaBasica::where('prototipo_id',$prototipo->id)->first();        
+               
+                $insercaoUrbana = TabInsercaoUrbana::where('prototipo_id',$prototipo->id)->first();        
+
+                  $mapasInsercao = MapaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get(); 
+                  $rotasInsercaoUrbana = RotaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get();
+
+                 $concepcaoProjeto = TabConcepcaoProjeto::leftjoin('opc_tipo_organizacao','opc_tipo_organizacao.id','tab_concepcao_projeto.tipo_organizacao_id')
+                                                                ->select('tab_concepcao_projeto.*','opc_tipo_organizacao.txt_tipo_organizacao')
+                                                                ->where('prototipo_id',$prototipo->id)->first();        
+               
+                
+
+                $situacaoTerreno = SituacaoTerreno::orderBy('id')->get();
+       
+               // return $habilitacao;
+            return view('admin.dados_proposta ',compact('usuario','ente','municipio','prototipo','caracTerreno','concepcaoProjeto','insercaoUrbana','infraBasica',
+                                                        'mapasInsercao','tabelaPontos','situacaoTerreno','plantaTerreno','habilitacao','criteriosHabilitacao','rotasInsercaoUrbana'));
+        
+   }
+
+   public function habilitarProposta($prototipoID){
+
+    
+
+    $usuarioLogado = Auth::user();   
+
+    if($usuarioLogado->tipo_usuario_id == 8 || $usuarioLogado->tipo_usuario_id == 9){
+    flash()->erro('Sem permissão', "Você não tem permissão para acessar essa página");
+    return redirect('/prototipo');
+    }
+    
+    
+      $prototipo = Prototipo::find($prototipoID);
+     
+
+
+     if(empty($prototipo) || $prototipo->situacao_prototipo_id < 4){
+        flash()->erro('Erro', "A proposta selecionada não existe ou não foi enviada.");
+        return redirect('admin/prototipos/consulta' );
+     }else{
+        if($prototipo->situacao_prototipo_id >= 6){
+            flash()->erro('Erro', "A proposta selecionada já foi analisada.");
+            return redirect('/admin/prototipo/show/levantamento/'.$prototipoID);
+        }
+        $prototipo->load('situacaoPrototipo');   
+     }
+     
+     
+
+      $usuario = User::where('ente_publico_id',$prototipo->ente_publico_proponente_id )->firstOrFail();
+       $ente = EntePublicoProponente::where('id',$prototipo->ente_publico_proponente_id)->firstOrFail();      
+     
+     $tabelaPontos = ViewTabelaPontuacao::where('prototipo_id',$prototipo->id)->get();
+     
+     $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+           ->select('txt_sigla_uf','ds_municipio')
+           ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();   
+
+        $criteriosHabilitacao =  ViewCriteriosHabilitacaoAuto::where('prototipo_id', $prototipo->id)->first();
+       
+       $insercaoUrbana = TabInsercaoUrbana::where('prototipo_id',$prototipo->id)->first();     
+       $mapasInsercao = MapaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get(); 
+
+       
+       $caracTerreno = TabCaracterizacaoTerreno::leftjoin('opc_titularidade_terreno','opc_titularidade_terreno.id','tab_caracterizacao_terreno.titularidade_terreno_id')
+                                                                ->leftjoin('opc_tipo_risco','opc_tipo_risco.id','tab_caracterizacao_terreno.tipo_risco_id')
+                                                                ->select('tab_caracterizacao_terreno.*','opc_titularidade_terreno.txt_titularidade_terreno','opc_tipo_risco.txt_tipo_risco')
+                                                                ->where('prototipo_id',$prototipo->id)->first();        
+       $plantaTerreno = PlantaTerreno::where('caracterizacao_terreno_id', $caracTerreno->id)->get();   
+
+       $infraBasica = TabInfraestrututaBasica::where('prototipo_id',$prototipo->id)->first();      
+
+        $requisitosHabilitacao = RequisitosHabilitacao::get();
+       $situacaoTerreno = SituacaoTerreno::orderBy('id')->get();
+       return view('admin.habilitar_proposta ',compact('usuario','ente','municipio','prototipo','criteriosHabilitacao','insercaoUrbana','mapasInsercao','caracTerreno',
+                                                    'infraBasica','plantaTerreno','requisitosHabilitacao','situacaoTerreno','tabelaPontos'));
+
+   }
+
+   public function finalizarAnalise(Request $request){
+       // return $request->all();
+       $usuario = Auth::user();  
+        $prototipo = Prototipo::find($request->prototipo_id); 
+         $ente = EntePublicoProponente::where('id',$prototipo->ente_publico_proponente_id)->firstOrFail();      
+     
+         $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
+             ->select('txt_sigla_uf','ds_municipio')
+             ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();   
+
+           $criteriosHabilitacao =  ViewCriteriosHabilitacaoAuto::where('prototipo_id', $request->prototipo_id)->first();
+        
+        $requisitos_adicionais = 0;
+
+
+        if($criteriosHabilitacao->requisitos_habilitacao_id_1){
+            $requisitos_adicionais += 1;
+        }
+
+        if($criteriosHabilitacao->requisitos_habilitacao_id_2 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_3 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_4 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_5 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_6 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_7 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_8 == true){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_9){
+            $requisitos_adicionais += 1;
+        }
+        if($criteriosHabilitacao->requisitos_habilitacao_id_10){
+            $requisitos_adicionais += 1;
+        }
+
+        DB::beginTransaction();
+
+        $habilitacao = new HabilitacaoPrototipo;
+        $habilitacao->prototipo_id = $request->prototipo_id;
+        $habilitacao->vlr_populacao_estimada =  $criteriosHabilitacao->vlr_populacao_estimada;
+        $habilitacao->num_requisitos_adicionais =  $requisitos_adicionais;
+        
+        if($criteriosHabilitacao->vlr_populacao_estimada <= 750000){
+            if($requisitos_adicionais >= 7){
+                $habilitacao->bln_req_edital_42_43 = true;
+            }else{
+                $habilitacao->bln_req_edital_42_43 = false;
+            }
+            
+        }else{
+            if($requisitos_adicionais >= 8){
+                $habilitacao->bln_req_edital_42_43 = true;
+            }else{
+                $habilitacao->bln_req_edital_42_43 = false;
+            }
+        }
+
+        if($request->requisitos_habilitacao_id_11 == 'true'){
+            $habilitacao->bln_req_edital_36_a = true;
+        }else{
+             $habilitacao->bln_req_edital_36_a = false;
+        }
+    
+
+        if($request->requisitos_habilitacao_id_12 == 'true'){
+            $habilitacao->bln_req_edital_36_b = true;
+        }else{
+            $habilitacao->bln_req_edital_36_b = false;
+        }
+    
+
+        if($request->requisitos_habilitacao_id_13 == 'true'){
+            $habilitacao->bln_req_edital_36_c = true;
+        }else{
+            $habilitacao->bln_req_edital_36_c = false;
+        }
+    
+
+        if($criteriosHabilitacao->requisitos_habilitacao_id_14 == true){
+            $habilitacao->bln_req_edital_36_e = true;
+        }else{
+            $habilitacao->bln_req_edital_36_e = false;
+        }
+
+
+
+       // return $habilitacao;
+        if($habilitacao->bln_req_edital_42_43  
+                && $habilitacao->bln_req_edital_36_a 
+                    && $habilitacao->bln_req_edital_36_b 
+                        && $habilitacao->bln_req_edital_36_c 
+                            && $habilitacao->bln_req_edital_36_e){
+            $habilitacao->bln_habilitada = true;
+            $prototipo->situacao_prototipo_id  = 6;
+        }else{
+            $habilitacao->bln_habilitada = false;
+           
+            $prototipo->situacao_prototipo_id  = 7;
+        }
+
+        $habilitacao->txt_observacao = $request->txt_observacao;
+        $habilitacao->dte_habilitacao = Date("Y-m-d h:i:s");  
+        $habilitacao->user_id = $usuario->id;
+
+        $salvouhabilitacao = $habilitacao->save();
+
+          $pontuacao = ViewPontuacaoCriterios::where('prototipo_id',$prototipo->id )->first();
+          $pontuacaoCriterio = new PontuacaoCriteriosPrototipo;
+        $pontuacaoCriterio->prototipo_id = $prototipo->id ;
+        $pontuacaoCriterio->num_pontuacao_item_1 = $pontuacao->num_pontuacao_item_1;
+        $pontuacaoCriterio->num_pontuacao_item_2 = $pontuacao->num_pontuacao_item_2;
+        $pontuacaoCriterio->num_pontuacao_item_3 = $pontuacao->num_pontuacao_item_3;
+        $pontuacaoCriterio->num_pontuacao_item_4 = $pontuacao->num_pontuacao_item_4;
+        $pontuacaoCriterio->num_pontuacao_item_5 = $pontuacao->num_pontuacao_item_5;
+        $pontuacaoCriterio->num_pontuacao_item_6 = $pontuacao->num_pontuacao_item_6;
+        $pontuacaoCriterio->num_pontuacao_item_7 = $pontuacao->num_pontuacao_item_7;
+        $pontuacaoCriterio->num_pontuacao_item_8 = $pontuacao->num_pontuacao_item_8;
+        $pontuacaoCriterio->num_pontuacao_item_9 = $pontuacao->num_pontuacao_item_9;
+        $pontuacaoCriterio->num_pontuacao_item_10 = $pontuacao->num_pontuacao_item_10;
+        $pontuacaoCriterio->situacao_prototipo_id = 4;
+    
+      
+    
+        $salvouPontuacao = $pontuacaoCriterio->save();
+    
+         $prototipo->num_pontuacao_total = $pontuacaoCriterio->num_pontuacao_item_1+$pontuacaoCriterio->num_pontuacao_item_2+$pontuacaoCriterio->num_pontuacao_item_3+$pontuacaoCriterio->num_pontuacao_item_4+$pontuacaoCriterio->num_pontuacao_item_5+$pontuacaoCriterio->num_pontuacao_item_6+$pontuacaoCriterio->num_pontuacao_item_7+$pontuacaoCriterio->num_pontuacao_item_8+$pontuacaoCriterio->num_pontuacao_item_9+$pontuacaoCriterio->num_pontuacao_item_10;
+    
+        
+        $salvaPrototipo = $prototipo->save();
+
+        $criteriosHabilitacao =  ViewCriteriosHabilitacaoAuto::where('prototipo_id', $request->prototipo_id)->first();
+
+         
+
+        if (!$salvouhabilitacao || !$salvaPrototipo || !$salvouPontuacao){           
+            DB::rollBack();
+            flash()->erro("Erro", "Não foi possível enviar a análise da proposta.");            
+            return back();
+        } else {
+            DB::commit();
+            flash()->sucesso("Sucesso", "Proposta analisada com sucesso!"); 
+            return redirect('admin/prototipo/show/levantamento/'.$request->prototipo_id);
+            
+        } 
+
+   }
+
+   public function editarAnalise(HabilitacaoPrototipo $habilitacaoPrototipo){
+
+    DB::beginTransaction();
+
+     $prototipoID =  $habilitacaoPrototipo->prototipo_id;;
+
+     $prototipo = Prototipo::find($prototipoID);
+     $prototipo->situacao_prototipo_id = 4;
+     $prototipo->num_pontuacao_total = 0;
+     $salvaPrototipo = $prototipo->save();
+
+     $pontuacaoCriterio = PontuacaoCriteriosPrototipo::where('prototipo_id', $prototipo->id)->first();
+     $deletePontuacaoCriterio = $pontuacaoCriterio->delete();
+
+     $deletouHabilitacao = $habilitacaoPrototipo->delete();
+
+   
+       
+    if (!$deletouHabilitacao || !$salvaPrototipo || !$deletePontuacaoCriterio){           
+        DB::rollBack();
+        flash()->erro("Erro", "Não foi possível cancelar a análise da proposta.");            
+        return back();
+    } else {
+        DB::commit();
+        flash()->sucesso("Sucesso", "Análise cancelada com sucesso!"); 
+        return redirect('admin/prototipo/show/levantamento/'.$prototipoID);
+        
+    } 
+   }
 
 }
 

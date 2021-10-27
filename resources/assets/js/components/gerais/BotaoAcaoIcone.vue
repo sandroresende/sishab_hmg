@@ -1,6 +1,8 @@
 <template>
 <div>    
-    <button v-bind:class="cssbotao" type="button" @click="onClickEnviar()"><i v-bind:class="cssicone"></i>{{this.textobotao}}</button>    
+
+<input v-if="!cssicone" v-bind:class="cssbotao" type="button" @click="onClickEnviar()" v-model="textobotao">
+    <button v-if="cssicone" v-bind:class="cssbotao" type="button" @click="onClickEnviar()"><i v-bind:class="cssicone"></i>{{this.textobotao}}</button>    
 </div>
 </template>
 

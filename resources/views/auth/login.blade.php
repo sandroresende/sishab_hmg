@@ -49,7 +49,7 @@
                 <div class="form-outer text-center d-flex align-items-center">
                     <div class="form-inner">
 
-                        <div class="logo text-uppercase"> <img src="{{URL::asset('img/logo-mcmv.png')}}"  ></div>
+                        <div class="logo text-uppercase"> <img src="{{URL::asset('img/logo-mcmv-cvea.png')}}"  ></div>
                         <p>Sistema de Gerenciamento da Habitação</p>
                         {{ $mensagem }}{{ Session::get('mensagem')}}
 

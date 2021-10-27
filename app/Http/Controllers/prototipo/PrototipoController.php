@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\prototipo;
+namespace App\Http\Controllers\Prototipo;
 
 use DB;
 use Illuminate\Http\Request;
@@ -8,29 +8,34 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
-use App\Http\Requests\ente_publico\SalvarDirigente;
-use App\Http\Requests\prototipo\SalvarCaracTerreno;
+//use App\Http\Requests\ente_publico\SalvarDirigente;
+//use App\Http\Requests\prototipo\SalvarCaracTerreno;
 
 use App\Http\Controllers\Controller;
 
 
 use App\User;
-use App\Municipio;
-use App\TipoProponente;
+use App\IndicadoresHabitacionais\Municipio;
+use App\Tab_dominios\TipoProponente;
 
-use App\ente_publico\TipoEntePublico;
+use App\Mod_selecao_demanda\TipoEntePublico;
 
-use App\prototipo\Prototipo;
-use App\prototipo\EntePublicoProponente;
-use App\prototipo\TabCaracterizacaoTerreno;
-use App\prototipo\TabInfraestrututaBasica;
-use App\prototipo\TabConcepcaoProjeto;
-use App\prototipo\TabInsercaoUrbana;
-use App\prototipo\Permissoes;
+use App\Mod_prototipo\Prototipo;
+use App\Mod_prototipo\EntePublicoProponente;
+use App\Mod_prototipo\TabCaracterizacaoTerreno;
+use App\Mod_prototipo\TabInfraestrututaBasica;
+use App\Mod_prototipo\TabConcepcaoProjeto;
+use App\Mod_prototipo\TabInsercaoUrbana;
+use App\Mod_prototipo\Permissoes;
+use App\Mod_prototipo\MapaInsercaoUrbana;
+use App\Mod_prototipo\PontuacaoCriteriosPrototipo;
+use App\Mod_prototipo\ViewPontuacaoCriterios;
+use App\Mod_prototipo\SituacaoTerreno;
+use App\Mod_prototipo\PlantaTerreno;
 
+use App\Mod_prototipo\RotaInsercaoUrbana;
 
-
-
+use App\Mod_sishab\Sishab\Configuracoes;
 
 
 
@@ -52,10 +57,13 @@ class PrototipoController extends Controller
          $tipoEnte = TipoProponente::select('id','txt_tipo_proponente as nome')->get();
          $usuario = Auth::user();
          $wherePermissao = [];
+         //$wherePermissaoIn = [];
           $wherePermissao[] = ['user_id',$usuario->id];    
-          $wherePermissao[] = ['status_permissao_id',2];   
+          //$wherePermissaoIn[] = ['status_permissao_id',[2,5]];   
+          
 
-          $permissao = Permissoes::where($wherePermissao)->get();
+          
+          $permissao = Permissoes::where($wherePermissao)->whereIn('status_permissao_id',[2,5])->get();
      // return $ente->id;
           $where = [];
           $where[] = ['ente_publico_id', $usuario->ente_publico_id];    
@@ -65,11 +73,13 @@ class PrototipoController extends Controller
            $ente = EntePublicoProponente::where('id',$usuario->ente_publico_id)->first();
             $ente->load('tipoProponente');
 
+            $numPrototipos = Prototipo::where('ente_publico_proponente_id',$ente->id)->count();
+
           if(Auth::user()->isUserAtivo()){
             if(Auth::user()->isAceiteTermo()){
                 
                
-                    return view('prototipo.painel_prototipo', compact('usuario','numUsuarios','permissao'));
+                    return view('views_prototipo.painel_prototipo', compact('usuario','numUsuarios','permissao','numPrototipos'));
                
             }else{                               
              return redirect('/prototipo/termo');
@@ -77,7 +87,7 @@ class PrototipoController extends Controller
           }  
           else{
             
-                  return view('prototipo.cadastro_ente_publico_proponente', compact('usuario','ente','tipoEnte'));
+                  return view('views_prototipo.cadastro_ente_publico_proponente', compact('usuario','ente','tipoEnte'));
             
             
           }
@@ -109,18 +119,19 @@ class PrototipoController extends Controller
 
           $permissaoDeferida = Permissoes::where($wherePermissao)->count();
            
-        return view('prototipo.minhas_permissoes',compact('usuario','permissoes','permissaoDeferida'));
+        return view('views_prototipo.minhas_permissoes',compact('usuario','permissoes','permissaoDeferida'));
     }
+
     public function novoPrototipo(){
         $usuario = Auth::user();
-        $ente = EntePublicoProponente::where('id',$usuario->ente_publico_id)->firstOrFail();       
+         $ente = EntePublicoProponente::where('id',$usuario->ente_publico_id)->firstOrFail();       
 
         $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
                 ->select('txt_sigla_uf','ds_municipio')
                 ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();   
 
     
-        return view('prototipo.cadastrar_prototipo',compact('usuario','ente','municipio'));
+        return view('views_prototipo.cadastrar_prototipo',compact('usuario','ente','municipio'));
     }
 
     public function salvarPrototipo(Request $request){
@@ -138,6 +149,8 @@ class PrototipoController extends Controller
         $where[] = ['municipio_id',trim($ente->municipio_id)];    
 
          $prototipoExiste = Prototipo::where($where)->first();
+
+     
 
         if(!$prototipoExiste){
             $prototipo = New Prototipo;
@@ -169,32 +182,49 @@ class PrototipoController extends Controller
 
     
     public function iniciarLevantamento($prototipo_id){
-        //return $prototipo_id;
+        $usuario = Auth::user();
+        $prototipo = Prototipo::where('id',$prototipo_id)->firstOrFail();     
 
+        if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+            flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+            return redirect('/prototipo');
+        }
+       
         return redirect("prototipo/iniciar/caracterizacaoTerreno/$prototipo_id")->with('usuario'); 
     }
 
     public function introducaoLevantamento($prototipo_id){
         
-        $usuario = Auth::user();
+       $usuario = Auth::user();
        $ente = EntePublicoProponente::where('id',$usuario->ente_publico_id)->firstOrFail();       
 
        $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
                ->select('txt_sigla_uf','ds_municipio')
                ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();  
                
-        $prototipo = Prototipo::where('id',$prototipo_id)->firstOrFail();        
-         return view('prototipo.inicio_levantamento',compact('usuario','ente','municipio','prototipo'));
+        $prototipo = Prototipo::where('id',$prototipo_id)->firstOrFail();     
+        
+        if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+            flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+            return redirect('/prototipo');
+        }
+
+
+         return view('views_prototipo.inicio_levantamento',compact('usuario','ente','municipio','prototipo'));
    }
 
-    public function listaPrototipos($usuario_id){
+    public function listaPrototipos(){
  
-            $usuario = User::where('id',$usuario_id)->firstOrFail();
+            $usuario = Auth::user();
          $prototipos = Prototipo::join('opc_situacao_prototipo', 'opc_situacao_prototipo.id','tab_prototipo.situacao_prototipo_id')
-                                        ->select('tab_prototipo.*','txt_situacao_prototipo')
+                                        ->leftjoin('tab_caracterizacao_terreno', 'tab_caracterizacao_terreno.prototipo_id','tab_prototipo.id')
+                                        ->leftjoin('tab_infraestrutura_basica', 'tab_infraestrutura_basica.prototipo_id','tab_prototipo.id')
+                                        ->leftjoin('tab_insercao_urbana', 'tab_insercao_urbana.prototipo_id','tab_prototipo.id')
+                                        ->select('tab_prototipo.*','txt_situacao_prototipo','tab_caracterizacao_terreno.id as caracterizacao_terreno_id',
+                                                'tab_infraestrutura_basica.id as infraestrutura_basica_id', 'tab_insercao_urbana.id as insercao_urbana_id')
                                         ->where('ente_publico_proponente_id',$usuario->ente_publico_id)->get();
    
-        return view('prototipo.lista_prototipos',compact('prototipos','usuario'));
+        return view('views_prototipo.lista_prototipos',compact('prototipos','usuario'));
     }
     
     public function abrirTermo(){
@@ -213,7 +243,7 @@ class PrototipoController extends Controller
                 $dataExtenso = convertaDataExtenso(getdate());
 
                     
-                return view('prototipo.termo_responsabilidade_prototipo', compact('usuario', 'ente','municipio','dataExtenso'));
+                return view('views_prototipo.termo_responsabilidade_prototipo', compact('usuario', 'ente','municipio','dataExtenso'));
         }else{
             return redirect('/prototipo');
         }
@@ -249,9 +279,18 @@ class PrototipoController extends Controller
 
     public function responderPerguntas ($prototipo_id){
 
-       // return $prototipo;
-        $prototipo = Prototipo::where('id',$prototipo_id)->first();
+       
+         $usuario = Auth::user();
 
+         $prototipo = Prototipo::where('id',$prototipo_id)->first();
+
+        if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+            return "teste if";
+            flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+            return redirect('/prototipo');
+        }
+
+       
         if($prototipo->situacao_prototipo_id == 1){
             return redirect("prototipo/levantamento/".$prototipo_id); 
         }else{ 
@@ -266,471 +305,32 @@ class PrototipoController extends Controller
                         return redirect('prototipo/iniciar/insercaoUrbana/'.$prototipo_id); 
                     }else{
                                 
-                        if(!$prototipo->bln_concepcao_projeto){
-                            return redirect('prototipo/iniciar/concepcaoProjeto/'.$prototipo_id); 
-                        }else{
-                                    
-                            return redirect('prototipo/show/levantamento/'.$prototipo_id); 
-                        }
+                        return redirect('prototipo/show/levantamento/'.$prototipo_id);       
                     }    
                 }    
             }
         }       
 
     }
-    public function caracterizacaoTerreno($prototipo_id)
-    {
-         $prototipo = Prototipo::where('id',$prototipo_id)->first();
-         if($prototipo->bln_caracterizacao_terreno){
-            return redirect('prototipo/iniciar/infraestruturaBasica',compact('prototipo')); 
-         }else{
-            return view('prototipo.caracterizacao_terreno',compact('prototipo'));
-         }
-       
-    }
-
-    public function caracterizacaoTerrenoSalvar(Request $request)
-    {
-        // return $request->all();
-       
-         $usuario = Auth::user();
-         $prototipo = Prototipo::find($request->prototipo_id);
-
-         $caminho_doc_cartorio = "";
-        if($request->file('txt_caminho_doc_cartorio')){
-            $tipoAquivo = $request->file('txt_caminho_doc_cartorio')->getMimeType();
-            if(!verificaTipoArquivo($tipoAquivo)){
-                return back();
-            }
-
-            
-             $nomeArqCartorio = 'arqCartorio-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_doc_cartorio')->extension();
-             $path_arquivo = public_path() . '/uploads_arquivos/prototipo/doc_cartorio/'.$prototipo->id;
-                
-             
-                if(!File::isDirectory($path_arquivo)){
-                    
-                    File::makeDirectory($path_arquivo, 0777, true, true);
-                }
-            
-            $caminho_doc_cartorio = $request->file('txt_caminho_doc_cartorio')->storeAs('/uploads_arquivos/prototipo/doc_cartorio/'.$prototipo->id, $nomeArqCartorio, 'arquivos');  
-
-           // return var_dump($caminho_doc_cartorio); 
-           
-            
-        }
-
-        $caminho_dec_interesse = "";
-
-        if($request->file('txt_caminho_dec_interesse')){
-            $tipoAquivo = $request->file('txt_caminho_dec_interesse')->getMimeType();
-            if(!verificaTipoArquivo($tipoAquivo)){
-                return back();
-            }
-
-            $nomeArqInteresse = 'arqInteresse-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_dec_interesse')->extension();
-
-            $path_arquivo_interesse = public_path(). '/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id;
-                
-            if(!File::isDirectory($path_arquivo_interesse)){
-                File::makeDirectory($path_arquivo_interesse, 0777, true, true);
-            }
-            $caminho_dec_interesse = $request->file('txt_caminho_dec_interesse')->storeAs('/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id, $nomeArqInteresse, 'arquivos');  
-
-
-            //$caminho_dec_interesse = $request->file('txt_caminho_dec_interesse')->storeAs('/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id, $nomeArqInteresse, 'arquivos');
-           
-        }  
-
-        DB::beginTransaction();
-
-        $prototipo->situacao_prototipo_id = 2;
-        $prototipo->bln_caracterizacao_terreno = TRUE;
-        $prototipo->dte_conclusao_caracterizacao_terreno =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-        //DADOS DO UPLOAD ARQUIVO
-         
-   
-
-
-        $caracTerreno = new TabCaracterizacaoTerreno();
-        $caracTerreno->prototipo_id =   $prototipo->id;
-
-        $caracTerreno->txt_caminho_doc_cartorio = $caminho_doc_cartorio;
-        $caracTerreno->txt_caminho_dec_interesse = $caminho_dec_interesse;
-        
-        
-        
-        
-        $caracTerreno->vlr_area_terreno = $request->vlr_area_terreno;
-        $caracTerreno->titularidade_terreno_id = $request->titularidade_terreno;
-        $caracTerreno->txt_terreno_terceiro = $request->txt_terreno_terceiro;
-        $caracTerreno->bln_terreno_ocupado = $request->terreno_ocupado;
-        $caracTerreno->txt_ocupacao = $request->txt_ocupacao;
-        $caracTerreno->txt_terreno_area_risco = $request->terreno_area_risco;
-        $caracTerreno->tipo_risco_id = $request->tipo_risco;
-        $caracTerreno->bln_terreno_reis_ociosidade = $request->bln_terreno_reis_ociosidade;
-        $caracTerreno->txt_observacao = $request->txt_observacao;
-        $salvoCaracTerreno = $caracTerreno->save();
-
-
-
-       // || !$salvoComSucessoEnte
-        
-        if (!$salvouPrototipo || !$salvoCaracTerreno){            
-            DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
-        } else {
-            DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Caracterização do Terreno salvo com sucesso!"); 
-
-            return redirect('prototipo/iniciar/infraestruturaBasica/'.$prototipo->id); 
-            
-        } 
-
-
-        
-    } 
     
-    public function infraestruturaBasica($prototipo_id)
-    {
-        
-          $prototipo = Prototipo::where('id',$prototipo_id)->first();
-
-        if($prototipo->bln_infraestrutura_basica){
-            return redirect('prototipo/iniciar/insercaoUrbana/'.$prototipo->id); 
-         }else{
-            return view('prototipo.infraestrutura_basica',compact('prototipo'));
-         }
-    } 
-
-    public function infraestruturaBasicaSalvar(Request $request)
-
-    
-    {
-        $usuario = Auth::user();
-        $prototipo = Prototipo::find($request->prototipo_id);
-
-        DB::beginTransaction();
-
-        $prototipo->situacao_prototipo_id = 2;
-        $prototipo->bln_infraestrutura_basica = TRUE;
-        $prototipo->dte_conclusao_infraestrutura_basica =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-        //return $request->all();
-        
-        $infraestruturaBasica = new TabInfraestrututaBasica();
-        $infraestruturaBasica->prototipo_id = $prototipo->id;
-       // $infraestruturaBasica->infraestrutura_basica_id = $request->infraestrututa_basica;
-        $infraestruturaBasica->bln_obras_andamento = $request->bln_obras_andamento;
-        $infraestruturaBasica->txt_sistema_em_obras = $request->txt_sistema_em_obras;
-        $infraestruturaBasica->txt_origem_recurso = $request->txt_origem_recurso;
-        $infraestruturaBasica->dte_termino_obras = $request->dte_termino_obras;
-
-        
-
-        if($request->bln_sistema_abastecimento == true){
-            $infraestruturaBasica->bln_sistema_abastecimento = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_abastecimento = false;
-        }
-
-        if($request->bln_sistema_coleta_esgoto == true){
-            $infraestruturaBasica->bln_sistema_coleta_esgoto = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_coleta_esgoto = false;
-        }
-
-        if($request->bln_sistema_renagem_ag_pluviais == true){
-            $infraestruturaBasica->bln_sistema_renagem_ag_pluviais = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_renagem_ag_pluviais = false;
-        }
-        
-        if($request->bln_dist_energia_eletrica == true){
-            $infraestruturaBasica->bln_dist_energia_eletrica = true;
-        }else{
-            $infraestruturaBasica->bln_dist_energia_eletrica = false;
-        }
-       
-        if($request->bln_iluminacao_publica == true){
-            $infraestruturaBasica->bln_iluminacao_publica = true;
-        }else{
-            $infraestruturaBasica->bln_iluminacao_publica = false;
-        }
-        
-        if($request->bln_guias_sarjetas == true){
-            $infraestruturaBasica->bln_guias_sarjetas = true;
-        }else{
-            $infraestruturaBasica->bln_guias_sarjetas = false;
-        }  
-
-        if($request->bln_pavimentacao == true){
-            $infraestruturaBasica->bln_pavimentacao = true;
-        }else{
-            $infraestruturaBasica->bln_pavimentacao = false;
-        }         
-
-        //return $infraestruturaBasica;
-
-        $salvoInfraestruturaBasica = $infraestruturaBasica->save();
-             
-        if (!$salvouPrototipo || !$salvoInfraestruturaBasica){            
-            DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
-        } else {
-            DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Infraestrutura Básica!"); 
-
-            return redirect('prototipo/iniciar/insercaoUrbana/'.$prototipo->id); 
-            
-        } 
-    }
-    
-    public function insercaoUrbana($prototipo_id)
-    {
-        $prototipo = Prototipo::where('id',$prototipo_id)->first();
-
-        if($prototipo->bln_insercao_urbana){
-            return redirect('prototipo/iniciar/concepcaoProjeto/'.$prototipo->id); 
-         }else{
-            return view('prototipo.insercao_urbana',compact('prototipo'));
-         }
-
-
-    } 
-
-    public function insercaoUrbanaSalvar(Request $request)
-    {
-
-         //return $request->all();
-
-        $usuario = Auth::user();
-        $prototipo = Prototipo::find($request->prototipo_id);
-
-        DB::beginTransaction();
-
-        $prototipo->situacao_prototipo_id = 2;
-        $prototipo->bln_insercao_urbana = TRUE;
-        $prototipo->dte_conclusao_insercao_urbana =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-     
-        $insercaoUrbana = new TabInsercaoUrbana();
-        $insercaoUrbana->prototipo_id =   $prototipo->id;
-        $insercaoUrbana->bln_transporte_publico_coletivo = $request->bln_transporte_publico_coletivo;
-        $insercaoUrbana->vlr_distancia_ponto = $request->vlr_distancia_ponto;
-        $insercaoUrbana->num_itinerarios = $request->num_itinerarios;
-        $insercaoUrbana->bln_equip_esporte_cultura = $request->bln_equip_esporte_cultura;
-        $insercaoUrbana->txt_equip_esporte_cultura = $request->txt_equip_esporte_cultura;
-        $insercaoUrbana->vlr_dist_mts_eq_esp_cult = $request->vlr_dist_mts_eq_esp_cult;
-        $insercaoUrbana->num_tempo_min_eq_esp_cult = $request->num_tempo_min_eq_esp_cult;
-        $insercaoUrbana->bln_mercadinho_mercado = $request->bln_mercadinho_mercado;
-        $insercaoUrbana->vlr_dist_mts_mercadinho = $request->vlr_dist_mts_mercadinho;
-        $insercaoUrbana->bln_padaria = $request->bln_padaria;
-        $insercaoUrbana->vlr_dist_mts_padaria = $request->vlr_dist_mts_padaria;
-        $insercaoUrbana->bln_farmacia = $request->bln_farmacia;
-        $insercaoUrbana->vlr_dist_mts_farmacia = $request->vlr_dist_mts_farmacia;
-
-
-        $insercaoUrbana->bln_supermercado = $request->bln_supermercado;
-       if($request->radioDisttempSuperm == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_supermercado = $request->vlr_dist_mts_supermercado;
-            $insercaoUrbana->num_tempo_min_supermercado = 0;
-       }else if($request->radioDisttempSuperm == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_supermercado = 0;
-            $insercaoUrbana->num_tempo_min_supermercado = $request->num_tempo_min_supermercado;
-       }       
-       
-       $insercaoUrbana->bln_agencia_bancaria = $request->bln_agencia_bancaria;
-       if($request->radioDisttempAgBancaria == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ag_bancaria = $request->vlr_dist_mts_ag_bancaria;
-            $insercaoUrbana->num_tempo_min_ag_bancaria = 0;
-        }else if($request->radioDisttempAgBancaria == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ag_bancaria = 0;
-            $insercaoUrbana->num_tempo_min_ag_bancaria = $request->num_tempo_min_ag_bancaria;
-        }
-       
-       $insercaoUrbana->bln_agencia_correios = $request->bln_agencia_correios;
-       if($request->radioDisttempCorreios == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_correios = $request->vlr_dist_mts_correios;
-            $insercaoUrbana->num_tempo_min_correios = 0;  
-        }else if($request->radioDisttempCorreios == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_correios = 0;
-            $insercaoUrbana->num_tempo_min_correios = $request->num_tempo_min_correios;  
-        }
-            
-       $insercaoUrbana->bln_centro_comercial = $request->bln_centro_comercial;
-       if($request->radioDisttempCenCom == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_cent_comerc = $request->vlr_dist_mts_cent_comerc;
-            $insercaoUrbana->num_tempo_min_cent_comerc = 0;
-        }else if($request->radioDisttempCenCom == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_cent_comerc = 0;
-            $insercaoUrbana->num_tempo_min_cent_comerc = $request->num_tempo_min_cent_comerc;  
-        }
-       
-       $insercaoUrbana->bln_restaurante_popular = $request->bln_restaurante_popular;
-       if($request->radioDisttempRestPopular == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_rest_pop = $request->vlr_dist_mts_rest_pop;
-            $insercaoUrbana->num_tempo_min_rest_pop = 0;
-        }else if($request->radioDisttempRestPopular == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_rest_pop = 0;
-            $insercaoUrbana->num_tempo_min_rest_pop = $request->num_tempo_min_rest_pop;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_infantil = $request->bln_escola_ed_infantil;
-       if($request->radioDisttempEdInf == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_inf = $request->vlr_dist_mts_ed_inf;
-            $insercaoUrbana->num_tempo_min_ed_inf = 0;
-        }else if($request->radioDisttempEdInf == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_inf = 0;
-            $insercaoUrbana->num_tempo_min_ed_inf = $request->num_tempo_min_ed_inf;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_fund_ciclo_1 = $request->bln_escola_ed_fund_ciclo_1;
-       if($request->radioDisttempEdFund1 == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c1 = $request->vlr_dist_mts_ed_fund_c1;
-            $insercaoUrbana->num_tempo_min_ed_fund_c1 = 0;
-        }else if($request->radioDisttempEdFund1 == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c1 = 0;
-            $insercaoUrbana->num_tempo_min_ed_fund_c1 = $request->num_tempo_min_ed_fund_c1;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_fund_ciclo_2 = $request->bln_escola_ed_fund_ciclo_2;
-       if($request->radioDisttempEdFund2 == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c2 = $request->vlr_dist_mts_ed_fund_c2;
-            $insercaoUrbana->num_tempo_min_ed_fund_c2 = 0;
-        }else if($request->radioDisttempEdFund2 == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c2 = 0;
-            $insercaoUrbana->num_tempo_min_ed_fund_c2 = $request->num_tempo_min_ed_fund_c2;
-        }
-       
-       $insercaoUrbana->bln_cras = $request->bln_cras;
-       if($request->radioDisttempCras == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_cras = $request->vlr_dist_mts_cras;
-            $insercaoUrbana->num_tempo_min_cras = 0;
-        }else if($request->radioDisttempCras == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_cras = 0;
-            $insercaoUrbana->num_tempo_min_cras = $request->num_tempo_min_cras;
-        }
-       
-       $insercaoUrbana->bln_ubs  = $request->bln_ubs ;
-       if($request->radioDisttempUbs == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ubs = $request->vlr_dist_mts_ubs;
-            $insercaoUrbana->num_tempo_min_ubs = 0;
-        }else if($request->radioDisttempUbs == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ubs = 0;
-            $insercaoUrbana->num_tempo_min_ubs = $request->num_tempo_min_ubs;
-        }
-        
-
-        if($request->file('txt_caminho_mapa')){
-            $nomeArqMapa = 'arqMapa-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_mapa')->extension();
-
-            $path_arquivo = public_path(). '/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id;
-                
-            if(!File::isDirectory($path_arquivo)){
-                File::makeDirectory($path_arquivo, 0777, true, true);
-            }
-            $caminho_mapa = $request->file('txt_caminho_mapa')->storeAs('/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id, $nomeArqMapa, 'arquivos');  
-
-
-          //  $caminho_mapa = $request->file('txt_caminho_mapa')->storeAs('/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id, $nomeArqMapa, 'arquivos');            
-            $tipoAquivo = $request->file('txt_caminho_mapa')->getMimeType();
-            if(!verificaTipoArquivo($tipoAquivo)){
-                return back();
-            }
-        }
-
-
-        $insercaoUrbana->txt_caminho_mapa = $caminho_mapa;
-
-        $salvoInsercaoUrbana = $insercaoUrbana->save();
-             
-        if (!$salvouPrototipo || !$salvoInsercaoUrbana){            
-            DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
-        } else {
-            DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Inserção Urbana salvos com sucesso!"); 
-
-            return redirect('prototipo/iniciar/concepcaoProjeto/'.$prototipo->id); 
-            
-        } 
-
-       
-        
-    } 
-
-    public function concepcaoProjeto($prototipo_id)
-    {
-        //return $request->all();
-        $prototipo = Prototipo::where('id',$prototipo_id)->first();
-
-        if($prototipo->bln_concepcao_projeto){
-            return redirect('prototipo/show/levantamento/'.$prototipo->id); 
-         }else{
-            return view('prototipo.concepcao_projeto',compact('prototipo'));
-         }
-        
-    } 
-
-    public function concepcaoProjetoSalvar(Request $request)
-    {
-        //return $request->all();
-        $usuario = Auth::user();
-        $prototipo = Prototipo::find($request->prototipo_id);
-
-        DB::beginTransaction();
-
-        $prototipo->situacao_prototipo_id = 3;
-        $prototipo->dte_conclusao_preenchimento =  Date("Y-m-d h:i:s");
-        $prototipo->bln_concepcao_projeto = TRUE;
-        $prototipo->dte_conclusao_concepcao_projeto =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-        
-        $concepcaoProjeto = new TabConcepcaoProjeto();
-        $concepcaoProjeto->prototipo_id = $prototipo->id;
-        $concepcaoProjeto->bln_possui_projeto_proposto = $request->bln_possui_projeto_proposto;
-        $concepcaoProjeto->txt_nome_parceiro_desenv_projeto = $request->txt_nome_parceiro_desenv_projeto;
-        $concepcaoProjeto->num_unidades_hab_propostas = $request->num_unidades_hab_propostas;
-        $concepcaoProjeto->vlr_area_uh_m2 = $request->vlr_area_uh_m2;
-        $concepcaoProjeto->tipo_organizacao_id = $request->tipo_organizacao;        
-        $concepcaoProjeto->num_pavimentos_cond_vertical = $request->txt_num_pavimentos_cond_vertical;
-        $concepcaoProjeto->txt_estrategia_reducao_custos_cond = $request->txt_estrategia_reducao_custos_cond;
-        $concepcaoProjeto->txt_destinacao_atividade_comercial = $request->destinacao_atividade_comercial;
-        $concepcaoProjeto->txt_observacao = $request->txt_observacao;       
-
-        $salvoConcepcaoProjeto = $concepcaoProjeto->save();
-             
-        if (!$salvouPrototipo || !$salvoConcepcaoProjeto){   
-            $ente = EntePublicoProponente::where('id',$usuario->ente_publico_id)->firstOrFail();
-       
-
-           $municipio = Municipio::join('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                ->select('txt_sigla_uf','ds_municipio')
-                ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();          
-            DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
-        } else {
-            DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Concepção do Projeto!"); 
-
-            return redirect('prototipo/show/levantamento/'.$prototipo->id); 
-            
-        } 
-       
-    } 
-
+      
 
 
     public function dadosPrototipo (Prototipo $prototipo){
-   //return $prototipo;
+        $usuario = Auth::user();
+      
 
-        return view('prototipo.dados_prototipo ',compact('prototipo'));
+        if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+            flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+            return redirect('/prototipo');
+        }
+
+        if($prototipo->situacao_prototipo_id <= 2){
+            return redirect('/prototipo');
+        }else{
+            return view('views_prototipo.dados_prototipo ',compact('prototipo'));
+        }
+        
     }    
     public function dadosLevantamento ($prototipo_id){
        
@@ -744,27 +344,48 @@ class PrototipoController extends Controller
                ->where('tab_municipios.id',$ente->municipio_id)->firstOrFail();   
 
                //$prototipo = Prototipo::where('ente_publico_proponente_id',$usuario->ente_publico_id)->first();   
-               $prototipo = Prototipo::find($prototipo_id); 
-                $prototipo->load('situacaoPrototipo');    
-               $caracTerreno = TabCaracterizacaoTerreno::join('opc_titularidade_terreno','opc_titularidade_terreno.id','tab_caracterizacao_terreno.titularidade_terreno_id')
-                                                                ->join('opc_tipo_risco','opc_tipo_risco.id','tab_caracterizacao_terreno.tipo_risco_id')
+                $prototipo = Prototipo::find($prototipo_id); 
+                   $prototipo->load('situacaoPrototipo');    
+                  
+                  if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+                    flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+                    return redirect('/prototipo');
+                }
+
+                if($prototipo->situacao_prototipo_id <= 2){
+                    return redirect('/propostas');
+                }
+
+                 $caracTerreno = TabCaracterizacaoTerreno::leftjoin('opc_titularidade_terreno','opc_titularidade_terreno.id','tab_caracterizacao_terreno.titularidade_terreno_id')
+                                                                ->leftjoin('opc_tipo_risco','opc_tipo_risco.id','tab_caracterizacao_terreno.tipo_risco_id')
                                                                 ->select('tab_caracterizacao_terreno.*','opc_titularidade_terreno.txt_titularidade_terreno','opc_tipo_risco.txt_tipo_risco')
                                                                 ->where('prototipo_id',$prototipo->id)->first();        
                
+                 $plantaTerreno = PlantaTerreno::where('caracterizacao_terreno_id', $caracTerreno->id)->get();
+
                 $infraBasica = TabInfraestrututaBasica::where('prototipo_id',$prototipo->id)->first();        
                
-                 $insercaoUrbana = TabInsercaoUrbana::where('prototipo_id',$prototipo->id)->first();        
+                $insercaoUrbana = TabInsercaoUrbana::where('prototipo_id',$prototipo->id)->first();        
 
-                 $concepcaoProjeto = TabConcepcaoProjeto::join('opc_tipo_organizacao','opc_tipo_organizacao.id','tab_concepcao_projeto.tipo_organizacao_id')
+                  $mapasInsercao = MapaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get(); 
+                   $rotasInsercaoUrbana = RotaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get();
+
+                 $concepcaoProjeto = TabConcepcaoProjeto::leftjoin('opc_tipo_organizacao','opc_tipo_organizacao.id','tab_concepcao_projeto.tipo_organizacao_id')
                                                                 ->select('tab_concepcao_projeto.*','opc_tipo_organizacao.txt_tipo_organizacao')
                                                                 ->where('prototipo_id',$prototipo->id)->first();        
-               
-               
-               
-       if($prototipo->situacao_prototipo_id == 4){
-            return view('prototipo.dados_prototipo ',compact('usuario','ente','municipio','prototipo','caracTerreno','concepcaoProjeto','insercaoUrbana','infraBasica'));
+                 $situacaoTerreno = SituacaoTerreno::orderBy('id')->get();
+                 $where = [];
+                 $where[] = ['modulo_sistema_id', 3];
+                 $where[] = ['id', 2];
+                 
+                $configuracoes = Configuracoes::where($where)->first();
+
+        if($prototipo->situacao_prototipo_id < 3){
+            return view('views_prototipo.dados_prototipo ',compact('usuario','ente','municipio','prototipo','caracTerreno',
+            'situacaoTerreno','concepcaoProjeto','insercaoUrbana','infraBasica','mapasInsercao','plantaTerreno','rotasInsercaoUrbana'));
        }else{
-            return view('prototipo.dados_levantamento ',compact('usuario','ente','municipio','prototipo','caracTerreno','concepcaoProjeto','insercaoUrbana','infraBasica'));
+            return view('views_prototipo.dados_levantamento ',compact('usuario','ente','municipio','prototipo','caracTerreno',
+            'situacaoTerreno','concepcaoProjeto','insercaoUrbana','infraBasica','mapasInsercao','plantaTerreno','rotasInsercaoUrbana'));
        }
          
 
@@ -774,14 +395,21 @@ class PrototipoController extends Controller
    public function concluirPreenchimento (Prototipo $prototipo){
       $usuario = Auth::user();   
 
+      if($usuario->ente_publico_id != $prototipo->ente_publico_proponente_id){
+        flash()->erro('Sem permissão', "Você não é o cadastrante dessa proposta");
+        return redirect('/prototipo');
+        }
+
     DB::beginTransaction();
 
+   
+
     $prototipo->situacao_prototipo_id = 4;
+   
     $prototipo->dte_prototipo_finalizado =  Date("Y-m-d h:i:s");
     $salvouPrototipo = $prototipo->save();
 
-    if (!$salvouPrototipo){   
-        
+    if (!$salvouPrototipo){           
         DB::rollBack();
         flash()->erro("Erro", "Não foi possível enviar a proposta.");            
         return back();
@@ -794,403 +422,129 @@ class PrototipoController extends Controller
 
    }
 
-   public function editarCaracTerreno ($caracterizacaoTerrenoId){
-    
-    
-     $caracterizacaoTerreno = TabCaracterizacaoTerreno::find($caracterizacaoTerrenoId);
-     $prototipo = Prototipo::where('id',$caracterizacaoTerreno->prototipo_id)->first();
-    return view('prototipo.editar_caracterizacao_terreno',compact('caracterizacaoTerreno'));    
+   public function excluirPrototipo(Prototipo $prototipo){
+       //return $prototipo;
 
-   }
+       DB::beginTransaction();        
+       $deletouPrototipo = false;
+       $deletouCaracTerreno = false;
+       $deletouInfraBasica = false;
+       $deletouMapasInsercao = false;
+       $deletouInsercaoUrbana = false;
 
-   public function caracterizacaoTerrenoUpdate(Request $request){
-        //return $request->all();
-
-        $caracTerreno = TabCaracterizacaoTerreno::find($request->caracterizacaoTerrenoId);
-        $prototipo = Prototipo::find($caracTerreno->prototipo_id); 
-
-        $caminho_doc_cartorio_edit = "";
-        if($request->file('txt_caminho_doc_cartorio_edit')){
-            $tipoAquivo = $request->file('txt_caminho_doc_cartorio_edit')->getMimeType();
-            if(!verificaTipoArquivo($tipoAquivo)){
-                return back();
-            }
-
-            //unlink(public_path() . $caracTerreno->txt_caminho_doc_cartorio);
-            
-             $nomeArqCartorio = 'arqCartorio-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_doc_cartorio_edit')->extension();
-             $path_arquivo = public_path() . '/uploads_arquivos/prototipo/doc_cartorio/'.$prototipo->id;
-                
-             
-                if(!File::isDirectory($path_arquivo)){
+       $prototipoId = $prototipo->id;
+       
+      
+       if(($prototipo->situacao_prototipo_id > 1) && ($prototipo->situacao_prototipo_id <= 3) ){
+       if($prototipo->bln_caracterizacao_terreno){
+            $caracTerreno = TabCaracterizacaoTerreno::where('prototipo_id',$prototipoId)->first();        
                     
-                    File::makeDirectory($path_arquivo, 0777, true, true);
+            unlink(public_path().'/'.$caracTerreno->txt_caminho_doc_cartorio);
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/doc_cartorio');
+
+          if(!empty($caracTerreno->txt_caminho_dec_reassent))  {
+            unlink(public_path().'/'.$caracTerreno->txt_caminho_dec_reassent);
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/doc_reassent');
+          }
+        
+            $plantaTerreno = PlantaTerreno::where('caracterizacao_terreno_id',$caracTerreno->id)->get(); 
+
+            foreach($plantaTerreno as $dados){
+                 $dados->txt_caminho_planta;
+                if($dados->txt_caminho_planta){
+                    
+                    unlink(public_path().'/'.$dados->txt_caminho_planta);
+                    
                 }
-            
-            $caminho_doc_cartorio_edit = $request->file('txt_caminho_doc_cartorio_edit')->storeAs('/uploads_arquivos/prototipo/doc_cartorio/'.$prototipo->id, $nomeArqCartorio, 'arquivos');  
-
-           // return var_dump($caminho_doc_cartorio); 
-           
-            
-        }
-
-        $caminho_dec_interesse_edit = "";
-
-        if($request->file('txt_caminho_dec_interesse_edit')){
-            $tipoAquivo = $request->file('txt_caminho_dec_interesse_edit')->getMimeType();
-            if(!verificaTipoArquivo($tipoAquivo)){
-                return back();
-            }
-
-            $nomeArqInteresse = 'arqInteresse-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_dec_interesse_edit')->extension();
-
-            $path_arquivo_interesse = public_path(). '/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id;
+                $deletouPlanta = $dados->delete();
                 
-            if(!File::isDirectory($path_arquivo_interesse)){
-                File::makeDirectory($path_arquivo_interesse, 0777, true, true);
-            }
-            $caminho_dec_interesse_edit = $request->file('txt_caminho_dec_interesse_edit')->storeAs('/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id, $nomeArqInteresse, 'arquivos');  
+            }     
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/planta_terreno');     
 
+            $deletouCaracTerreno = $caracTerreno->delete();
+       }
+     
+        if($prototipo->bln_infraestrutura_basica){
+            $infraBasica = TabInfraestrututaBasica::where('prototipo_id',$prototipoId)->first();        
+            $deletouInfraBasica = $infraBasica->delete();
+        }
+        
+        if($prototipo->bln_insercao_urbana){
+        
+            $insercaoUrbana = TabInsercaoUrbana::where('prototipo_id',$prototipoId)->first();        
 
-            //$caminho_dec_interesse = $request->file('txt_caminho_dec_interesse')->storeAs('/uploads_arquivos/prototipo/doc_interesse/'.$prototipo->id, $nomeArqInteresse, 'arquivos');
+            unlink(public_path().'/'.$insercaoUrbana->txt_caminho_registro_rota);
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/registro_rotas');
+
+             $mapasInsercao = MapaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get(); 
+
+            foreach($mapasInsercao as $dados){
+                 $dados->txt_caminho_mapa;
+                if($dados->txt_caminho_mapa){
+                    
+                    unlink(public_path().'/'.$dados->txt_caminho_mapa);
+                    
+                }
+                $deletouMapasInsercao = $dados->delete();
+                
+            }     
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/doc_mapa');       
            
-        }  
+           
 
-        DB::beginTransaction();
+             $rotasInsercao = RotaInsercaoUrbana::where('insercao_urbana_id',$insercaoUrbana->id)->get(); 
 
-        $prototipo->dte_conclusao_caracterizacao_terreno =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-        //DADOS DO UPLOAD ARQUIVO      
-        if($caminho_dec_interesse_edit){
-        $caracTerreno->txt_caminho_doc_cartorio = $caminho_doc_cartorio_edit;
+            foreach($rotasInsercao as $dados){
+                 $dados->txt_caminho_rotas;
+                if($dados->txt_caminho_rotas){
+                    
+                    unlink(public_path().'/'.$dados->txt_caminho_rotas);
+                    
+                }
+                $deletourotasInsercao = $dados->delete();
+                
+            }     
+            rmdir(public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId.'/doc_rota');       
+           
+          
+            $deletouInsercaoUrbana = $insercaoUrbana->delete();
+           
         }
-        
-        if($caminho_dec_interesse_edit){
-            $caracTerreno->txt_caminho_dec_interesse = $caminho_dec_interesse_edit;
-        }
-        
-        
-        
-        
-        
-        $caracTerreno->vlr_area_terreno = $request->vlr_area_terreno;
-        $caracTerreno->titularidade_terreno_id = $request->titularidade_terreno;
-        if($request->titularidade_terreno == 3){
-            $caracTerreno->txt_terreno_terceiro = $request->txt_terreno_terceiro;
-        }else{
-            $caracTerreno->txt_terreno_terceiro = null;
-        }
-        
-        $caracTerreno->bln_terreno_ocupado = $request->terreno_ocupado;
-        if($request->terreno_ocupado == 1){
-            $caracTerreno->txt_ocupacao = $request->txt_ocupacao;
-        }else{
-            $caracTerreno->txt_ocupacao = null;
-        }
-        //$caracTerreno->txt_ocupacao = $request->txt_ocupacao;
 
-        $caracTerreno->txt_terreno_area_risco = $request->terreno_area_risco;
-        if($request->terreno_area_risco == 1){
-            $caracTerreno->tipo_risco_id = $request->tipo_risco;
-        }else{
-            $caracTerreno->tipo_risco_id = null;
+        //$deletouPrototipo = $prototipo->delete();
+        //$concepcaoProjeto = TabConcepcaoProjeto::where('prototipo_id',$prototipoId)->first();     
+
+        $path_arquivo = public_path(). '/uploads_arquivos/prototipo/prototipos/'.$prototipoId;
+                
+        if(!File::isDirectory($path_arquivo)){
+            File::makeDirectory($path_arquivo, 0777, true, true);
         }
+      
+        rmdir($path_arquivo);
+    }else{
+        $deletouCaracTerreno = true;
+       $deletouInfraBasica = true;
+       $deletouMapasInsercao = true;
+       $deletouInsercaoUrbana = true;
+
+      
+    }
+    
+    $deletouPrototipo = $prototipo->delete();
         
-        $caracTerreno->bln_terreno_reis_ociosidade = $request->bln_terreno_reis_ociosidade;
-        $caracTerreno->txt_observacao = $request->txt_observacao;
-        $salvoCaracTerreno = $caracTerreno->save();
-
-
-
-       // || !$salvoComSucessoEnte
-        
-        if (!$salvouPrototipo || !$salvoCaracTerreno){            
+        if (!$deletouPrototipo && !$deletouCaracTerreno && !$deletouInfraBasica && !$deletouMapasInsercao && !$deletouInsercaoUrbana){           
             DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
+            flash()->erro("Erro", "Não foi possível excluir a proposta.");            
+            return back();
         } else {
             DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Caracterização do Terreno alterados com sucesso!"); 
-
-            return redirect('prototipo/show/levantamento/'.$prototipo->id); 
+            flash()->sucesso("Sucesso", "Proposta excluída com sucesso!"); 
+            return back()  ;
             
         } 
+
    }
 
-   public function editarInfraBasica ($infraestrututaBasicaId){
-    
-    $infraestrututaBasica = TabInfraestrututaBasica::find($infraestrututaBasicaId);
-    $prototipo = Prototipo::where('id',$infraestrututaBasica->prototipo_id)->first();
-   return view('prototipo.editar_infraestrutura_basica',compact('infraestrututaBasica','prototipo'));    
-
-  }
-
-  public function infraestrututaBasicaUpdate(Request $request){
-       //return $request->all();
-       $usuario = Auth::user();
-      
-         $infraestruturaBasica = TabInfraestrututaBasica::find($request->infraestrututaBasicaId);
-          $prototipo = Prototipo::find($infraestruturaBasica->prototipo_id);
-
-        DB::beginTransaction();
-
-        $prototipo->bln_infraestrutura_basica = TRUE;
-        $prototipo->dte_conclusao_infraestrutura_basica =  Date("Y-m-d h:i:s");
-        $salvouPrototipo = $prototipo->save();
-
-        
-        
-        $infraestruturaBasica->prototipo_id = $prototipo->id;
-       // $infraestruturaBasica->infraestrutura_basica_id = $request->infraestrututa_basica;
-        $infraestruturaBasica->bln_obras_andamento = $request->bln_obras_andamento;
-        $infraestruturaBasica->txt_sistema_em_obras = $request->txt_sistema_em_obras;
-        $infraestruturaBasica->txt_origem_recurso = $request->txt_origem_recurso;
-        $infraestruturaBasica->dte_termino_obras = $request->dte_termino_obras;
-
-        if($request->bln_sistema_abastecimento == true){
-            $infraestruturaBasica->bln_sistema_abastecimento = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_abastecimento = false;
-        }
-
-        if($request->bln_sistema_coleta_esgoto == true){
-            $infraestruturaBasica->bln_sistema_coleta_esgoto = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_coleta_esgoto = false;
-        }
-
-        if($request->bln_sistema_renagem_ag_pluviais == true){
-            $infraestruturaBasica->bln_sistema_renagem_ag_pluviais = true;
-        }else{
-            $infraestruturaBasica->bln_sistema_renagem_ag_pluviais = false;
-        }
-        
-        if($request->bln_dist_energia_eletrica == true){
-            $infraestruturaBasica->bln_dist_energia_eletrica = true;
-        }else{
-            $infraestruturaBasica->bln_dist_energia_eletrica = false;
-        }
-       
-        if($request->bln_iluminacao_publica == true){
-            $infraestruturaBasica->bln_iluminacao_publica = true;
-        }else{
-            $infraestruturaBasica->bln_iluminacao_publica = false;
-        }
-        
-        if($request->bln_guias_sarjetas == true){
-            $infraestruturaBasica->bln_guias_sarjetas = true;
-        }else{
-            $infraestruturaBasica->bln_guias_sarjetas = false;
-        }  
-
-        if($request->bln_pavimentacao == true){
-            $infraestruturaBasica->bln_pavimentacao = true;
-        }else{
-            $infraestruturaBasica->bln_pavimentacao = false;
-        }  
-
-
-        //return $infraestruturaBasica;
-        $salvoInfraestruturaBasica = $infraestruturaBasica->save();
-             
-        if (!$salvouPrototipo || !$salvoInfraestruturaBasica){            
-            DB::rollBack();
-            flash()->erro("Erro", "Não foi possível cadastrar os dados.");            
-        } else {
-            DB::commit();
-            flash()->sucesso("Sucesso", "Dados de Infraestrutura Básica atualizados com sucesso!"); 
-
-            return redirect('prototipo/show/levantamento/'.$prototipo->id); 
-            
-        } 
-
-  }
-
- 
-
-  public function editarInsercaoUrbana ($insercaoUrbanaId){
-    
-     $insercaoUrbana = TabInsercaoUrbana::find($insercaoUrbanaId);
-    $prototipo = Prototipo::where('id',$insercaoUrbana->prototipo_id)->first();
-   return view('prototipo.editar_insercao_urbana',compact('insercaoUrbana','prototipo'));    
-
-  }
-
-  public function insercaoUrbanaUpdate(Request $request){
-      // return $request->all();
-        $insercaoUrbana = TabInsercaoUrbana::find($request->insercaoUrbanaId);
-       $prototipo = Prototipo::find($insercaoUrbana->prototipo_id);
-
-      
-
-       DB::beginTransaction();
-
-       
-       $prototipo->bln_insercao_urbana = TRUE;
-       $prototipo->dte_conclusao_insercao_urbana =  Date("Y-m-d h:i:s");
-       $salvouPrototipo = $prototipo->save();
-
-    
-       
-       
-       $insercaoUrbana->bln_transporte_publico_coletivo = $request->bln_transporte_publico_coletivo;
-       $insercaoUrbana->vlr_distancia_ponto = $request->vlr_distancia_ponto;
-       $insercaoUrbana->num_itinerarios = $request->num_itinerarios;
-       $insercaoUrbana->bln_equip_esporte_cultura = $request->bln_equip_esporte_cultura;
-       $insercaoUrbana->txt_equip_esporte_cultura = $request->txt_equip_esporte_cultura;
-       $insercaoUrbana->vlr_dist_mts_eq_esp_cult = $request->vlr_dist_mts_eq_esp_cult;
-       $insercaoUrbana->num_tempo_min_eq_esp_cult = $request->num_tempo_min_eq_esp_cult;
-       $insercaoUrbana->bln_mercadinho_mercado = $request->bln_mercadinho_mercado;
-       $insercaoUrbana->vlr_dist_mts_mercadinho = $request->vlr_dist_mts_mercadinho;
-       $insercaoUrbana->bln_padaria = $request->bln_padaria;
-       $insercaoUrbana->vlr_dist_mts_padaria = $request->vlr_dist_mts_padaria;
-       $insercaoUrbana->bln_farmacia = $request->bln_farmacia;
-       $insercaoUrbana->vlr_dist_mts_farmacia = $request->vlr_dist_mts_farmacia;
-
-       $insercaoUrbana->bln_supermercado = $request->bln_supermercado;
-       if($request->radioDisttempSuperm == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_supermercado = $request->vlr_dist_mts_supermercado;
-            $insercaoUrbana->num_tempo_min_supermercado = 0;
-       }else if($request->radioDisttempSuperm == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_supermercado = 0;
-            $insercaoUrbana->num_tempo_min_supermercado = $request->num_tempo_min_supermercado;
-       }       
-       
-       $insercaoUrbana->bln_agencia_bancaria = $request->bln_agencia_bancaria;
-       if($request->radioDisttempAgBancaria == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ag_bancaria = $request->vlr_dist_mts_ag_bancaria;
-            $insercaoUrbana->num_tempo_min_ag_bancaria = 0;
-        }else if($request->radioDisttempAgBancaria == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ag_bancaria = 0;
-            $insercaoUrbana->num_tempo_min_ag_bancaria = $request->num_tempo_min_ag_bancaria;
-        }
-       
-       $insercaoUrbana->bln_agencia_correios = $request->bln_agencia_correios;
-       if($request->radioDisttempCorreios == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_correios = $request->vlr_dist_mts_correios;
-            $insercaoUrbana->num_tempo_min_correios = 0;  
-        }else if($request->radioDisttempCorreios == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_correios = 0;
-            $insercaoUrbana->num_tempo_min_correios = $request->num_tempo_min_correios;  
-        }
-            
-       $insercaoUrbana->bln_centro_comercial = $request->bln_centro_comercial;
-       if($request->radioDisttempCenCom == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_cent_comerc = $request->vlr_dist_mts_cent_comerc;
-            $insercaoUrbana->num_tempo_min_cent_comerc = 0;
-        }else if($request->radioDisttempCenCom == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_cent_comerc = 0;
-            $insercaoUrbana->num_tempo_min_cent_comerc = $request->num_tempo_min_cent_comerc;  
-        }
-       
-       $insercaoUrbana->bln_restaurante_popular = $request->bln_restaurante_popular;
-       if($request->radioDisttempRestPopular == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_rest_pop = $request->vlr_dist_mts_rest_pop;
-            $insercaoUrbana->num_tempo_min_rest_pop = 0;
-        }else if($request->radioDisttempRestPopular == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_rest_pop = 0;
-            $insercaoUrbana->num_tempo_min_rest_pop = $request->num_tempo_min_rest_pop;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_infantil = $request->bln_escola_ed_infantil;
-       if($request->radioDisttempEdInf == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_inf = $request->vlr_dist_mts_ed_inf;
-            $insercaoUrbana->num_tempo_min_ed_inf = 0;
-        }else if($request->radioDisttempEdInf == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_inf = 0;
-            $insercaoUrbana->num_tempo_min_ed_inf = $request->num_tempo_min_ed_inf;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_fund_ciclo_1 = $request->bln_escola_ed_fund_ciclo_1;
-       if($request->radioDisttempEdFund1 == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c1 = $request->vlr_dist_mts_ed_fund_c1;
-            $insercaoUrbana->num_tempo_min_ed_fund_c1 = 0;
-        }else if($request->radioDisttempEdFund1 == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c1 = 0;
-            $insercaoUrbana->num_tempo_min_ed_fund_c1 = $request->num_tempo_min_ed_fund_c1;
-        }
-       
-       $insercaoUrbana->bln_escola_ed_fund_ciclo_2 = $request->bln_escola_ed_fund_ciclo_2;
-       if($request->radioDisttempEdFund2 == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c2 = $request->vlr_dist_mts_ed_fund_c2;
-            $insercaoUrbana->num_tempo_min_ed_fund_c2 = 0;
-        }else if($request->radioDisttempEdFund2 == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ed_fund_c2 = 0;
-            $insercaoUrbana->num_tempo_min_ed_fund_c2 = $request->num_tempo_min_ed_fund_c2;
-        }
-       
-       $insercaoUrbana->bln_cras = $request->bln_cras;
-       if($request->radioDisttempCras == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_cras = $request->vlr_dist_mts_cras;
-            $insercaoUrbana->num_tempo_min_cras = 0;
-        }else if($request->radioDisttempCras == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_cras = 0;
-            $insercaoUrbana->num_tempo_min_cras = $request->num_tempo_min_cras;
-        }
-       
-       $insercaoUrbana->bln_ubs  = $request->bln_ubs ;
-       if($request->radioDisttempUbs == "distancia"){
-            $insercaoUrbana->vlr_dist_mts_ubs = $request->vlr_dist_mts_ubs;
-            $insercaoUrbana->num_tempo_min_ubs = 0;
-        }else if($request->radioDisttempUbs == "tempo"){
-            $insercaoUrbana->vlr_dist_mts_ubs = 0;
-            $insercaoUrbana->num_tempo_min_ubs = $request->num_tempo_min_ubs;
-        }
-       
-
-       if($request->file('txt_caminho_mapa')){
-           $nomeArqMapa = 'arqMapa-'.$prototipo->municipio_id.'-'.$prototipo->id.'.'.$request->file('txt_caminho_mapa')->extension();
-
-           $path_arquivo = public_path(). '/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id;
-               
-           if(!File::isDirectory($path_arquivo)){
-               File::makeDirectory($path_arquivo, 0777, true, true);
-           }
-           $caminho_mapa = $request->file('txt_caminho_mapa')->storeAs('/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id, $nomeArqMapa, 'arquivos');  
-
-
-         //  $caminho_mapa = $request->file('txt_caminho_mapa')->storeAs('/uploads_arquivos/prototipo/doc_mapa/'.$prototipo->id, $nomeArqMapa, 'arquivos');            
-           $tipoAquivo = $request->file('txt_caminho_mapa')->getMimeType();
-           if(!verificaTipoArquivo($tipoAquivo)){
-               return back();
-           }
-           $insercaoUrbana->txt_caminho_mapa = $caminho_mapa;
-       }
-
-
-       
-
-       $salvoInsercaoUrbana = $insercaoUrbana->save();
-            
-       if (!$salvouPrototipo || !$salvoInsercaoUrbana){            
-           DB::rollBack();
-           flash()->erro("Erro", "Não foi possível atualizar os dados.");            
-       } else {
-           DB::commit();
-           flash()->sucesso("Sucesso", "Dados de Inserção Urbana atualizados com sucesso!"); 
-
-           return redirect('prototipo/show/levantamento/'.$prototipo->id); 
-           
-       }
-
-  }
-
-  public function editarConcepcaoProjeto ($concepcaoProjetoId){
-    
-    $concepcaoProjeto = TabConcepcaoProjeto::find($concepcaoProjetoId);
-    $prototipo = Prototipo::where('id',$concepcaoProjeto->prototipo_id)->first();
-   return view('prototipo.editar_concepcao_projeto',compact('concepcaoProjeto','prototipo'));    
-
-  }
-
-  public function concepcaoProjetoUpdate(Request $request){
-       return $request->all();
-
-  }
-
-  
-
-  
 
 }
 

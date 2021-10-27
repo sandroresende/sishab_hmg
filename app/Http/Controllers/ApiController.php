@@ -3,120 +3,82 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Uf;
-use App\Regiao;
-use App\Municipio;
-use App\ResumoPropostas;
-use App\BrasilComRm;
-use App\RelatorioExecutivoResumo;
-use App\ExecutivoPj;
-use App\ResumoRetomadaObras;
-use App\SituacaoObra;
-use App\oferta\ResumoProtocolos;
-use App\oferta\Protocolo;
-use App\oferta\Contrato;
-use App\Propostas;
-use App\Proponente;
-use App\oferta\Instituicao;
-use App\RelatorioExecutivoAno;
-use App\PosicaoArquivoExecutivo;
-use App\Codem\TipoDemanda;
-use App\Codem\TipoAtendimento;
-use App\Codem\Tema;
-use App\Codem\SubTema;
-use App\Codem\Prioridade;
-use App\Codem\TipoInteressado;
-use App\Codem\ModalidadeDemanda;
-use App\Codem\RelacaoDemanda;
-use App\MunicipiosContrataramMcmv;
-use App\SolicitacaoPagamento;
-use App\TipoLiberacao;
-use App\SolicitacaoLiberacao;
-use App\Operacao;
-use App\Modalidade;
-use App\StatusSnh;
-use App\Entregas;
-use App\FaixaRenda;
 
-use App\AcoesGoverno;
-use App\Orcamento;
+use App\Mod_sishab\PropostasMcmv\ResumoPropostas;
 
-use App\pac\MunicipiosBeneficiados;
+use App\IndicadoresHabitacionais\Regiao;
+use App\IndicadoresHabitacionais\Municipio;
+use App\IndicadoresHabitacionais\Uf;
+use App\IndicadoresHabitacionais\BrasilComRm;
 
-use App\OperacoesContratadas;
-use App\StatusEmpreendimento;
+use App\Tab_dominios\StatusEmpreendimento;
+use App\Tab_dominios\TipoLiberacao;
+use App\Tab_dominios\Modalidade;
+use App\Tab_dominios\SituacaoObra;
+use App\Tab_dominios\TipoContrapartida;
+use App\Tab_dominios\SituacaoAdesao;
 
-use App\TipoUsuario;
+use App\Mod_sishab\MedicoesObras\ViewMedicoesObras;
 
-use App\ModuloSistema;
-use App\ente_publico\EntePublico;
-use App\ente_publico\TipoEntePublico;
 
-use App\prototipo\TitularidadeTerreno;
-use App\prototipo\TipoRisco;
-use App\prototipo\InfraestrututaBasica;
-use App\prototipo\FonteRecurso;
-use App\prototipo\TipoOrganizacao;
-use App\prototipo\TipoIndeferimento;
-use App\prototipo\ModalidadeParticipacao;
+use App\Mod_sishab\Operacoes\Operacao;
+use App\Mod_sishab\Operacoes\ViewOperacoesContratadas;
+use App\Mod_sishab\Operacoes\HistoricoEntregas;
+
+use App\Mod_sishab\OfertaPublica\Instituicao;
+use App\Mod_sishab\OfertaPublica\ResumoProtocolos;
+
+use App\Mod_selecao_demanda\EntePublico;
+use App\Mod_selecao_demanda\DemandaGerada;
+
+use App\Mod_prototipo\TitularidadeTerreno;
+use App\Mod_prototipo\TipoRisco;
+use App\Mod_prototipo\InfraestrututaBasica;
+use App\Mod_prototipo\FonteRecurso;
+use App\Mod_prototipo\TipoOrganizacao;
+use App\Mod_prototipo\TipoIndeferimento;
+use App\Mod_prototipo\ModalidadeParticipacao;
+use App\Mod_prototipo\SituacaoTerreno;
+
 
 
 class ApiController extends Controller
 {
-    
-    public function buscarRegioes(){        
-        return Regiao::orderBy('txt_regiao')->get();
+
+/** APIS TAB DOMINIOS */
+    public function listaModalidades(){
+
+        return $modalidades = Modalidade::orderBy('txt_modalidade')->get();
     }
 
-    public function buscarRides(){        
-        return BrasilComRm::select('txt_rm_ride')
-                        ->orderBy('txt_rm_ride', 'asc')
-                        ->where('txt_rm_ride','<>','' )
-                        ->groupBy('txt_rm_ride')
-                        ->get();
+    public function buscarSituacaoObraExecutivo(){       
+        return SituacaoObra::orderBy('txt_situacao_obra')->get();
+
     }
 
-    public function buscarUfsRides($estado){       
-       
-        $where = [];
-        $where[] = ['uf_id',$estado]; 
-        return BrasilComRm::select('txt_rm_ride')
-                        ->orderBy('txt_rm_ride', 'asc')
-                        ->where( $where )
-                        ->where('txt_rm_ride','<>','')
-                        ->groupBy('txt_rm_ride')
-                        ->get();
+    public function buscarStatusEmpreendimento(){   
+
+        return StatusEmpreendimento::orderBy('txt_status_empreendimento')->get(); 
     }
 
-    public function buscarRegioesRides($regiao){       
-       
-        $where = [];
-        $where[] = ['regiao_id',$regiao]; 
-        return BrasilComRm::select('txt_rm_ride')
-                        ->orderBy('txt_rm_ride', 'asc')
-                        ->where( $where )
-                        ->where('txt_rm_ride','<>','')
-                        ->groupBy('txt_rm_ride')
-                        ->get();
-    }
-    
-    public function buscarUfs(){        
-        return Uf::orderBy('txt_uf')->get();
-    }
-    
-    public function buscarUfsRegiao($regiao){        
-        return Uf::where('regiao_id',$regiao)->orderBy('txt_uf')->get();
-    }
+    public function buscarStatusEmpreendimentoVigente($vigente){   
 
-    public function buscarMunicipios($estado){
-        
-        return Municipio::where('uf_id', $estado)->orderBy('ds_municipio', 'asc')->get();
+        return StatusEmpreendimento::where('bln_vigente',$vigente)
+                ->get(); 
     }
+    /** APIS TAB DOMINIOS */
 
-    public function buscarInstituicoes(){
-        
-        return Instituicao::where('id','<>', 3)->orderBy('txt_nome_if', 'asc')->get();
+/**APIS PROPOSTAS_MCMV */    
+
+    public function buscarSelecoes(){
+            
+        $selecoes =  ResumoPropostas::select('selecao_id', 'num_selecao','num_ano_selecao','txt_modalidade')
+                                    ->orderBy('num_selecao', 'asc')
+                                    ->orderBy('num_ano_selecao', 'asc')
+                                    ->groupBy('selecao_id', 'num_selecao','num_ano_selecao','txt_modalidade')
+                                    ->get();
+
+        return $selecoes;
     }
 
     public function buscarUfsPropostas(){        
@@ -143,9 +105,6 @@ class ApiController extends Controller
         return $municipios;
     }
 
-    
-
-
     public function buscarModalidadesUfPropostas($estado){
         
         $where = [];
@@ -161,22 +120,6 @@ class ApiController extends Controller
         return $modalidades;
     }
 
-    public function buscarModalidadesMunPropostas($municipio){
-        
-        $where = [];
-        $where[] = ['municipio_id', $municipio];
-        
-
-        $modalidades =  ResumoPropostas::select('modalidade_id', 'txt_modalidade')
-                                    ->orderBy('txt_modalidade', 'asc')
-                                    ->where($where)
-                                    ->groupBy('modalidade_id', 'txt_modalidade')
-                                    ->get();
-
-        return $modalidades;
-    }
-
-    
     public function buscarSelecoesUfPropostas($estado){
         
         $where = [];
@@ -191,6 +134,21 @@ class ApiController extends Controller
                                     ->get();
 
         return $selecoes;
+    }
+
+    public function buscarModalidadesMunPropostas($municipio){
+        
+        $where = [];
+        $where[] = ['municipio_id', $municipio];
+        
+
+        $modalidades =  ResumoPropostas::select('modalidade_id', 'txt_modalidade')
+                                    ->orderBy('txt_modalidade', 'asc')
+                                    ->where($where)
+                                    ->groupBy('modalidade_id', 'txt_modalidade')
+                                    ->get();
+
+        return $modalidades;
     }
 
     public function buscarSelecoesMunPropostas($municipio){
@@ -209,6 +167,7 @@ class ApiController extends Controller
         return $selecoes;
     }
 
+
     public function buscarSelecoesModPropostas($modalidade){
         
         $where = [];
@@ -225,326 +184,34 @@ class ApiController extends Controller
         return $selecoes;
     }
 
-    public function buscarMunicipiosEmpreendimentos($estado){
-        
+    public function buscarRegioesContratadas(){    
         $where = [];
-        $where[] = ['uf_id', $estado];
-        
-
-        $municipios =  ExecutivoPj::join('tab_municipios','tab_municipios.id','=','tab_executivo_pj.municipio_id')
-                                    ->selectRaw('ds_municipio, municipio_id')
+        $where[] = ['bln_selecionada', true];
+        $where[] = ['bln_contratada', true];    
+        $regioes =  ResumoPropostas::select('regiao_id', 'txt_regiao')
+                                    ->orderBy('txt_regiao', 'asc')
                                     ->where($where)
-                                    ->groupBy('ds_municipio', 'municipio_id')
-                                    ->orderBy('ds_municipio', 'asc')
+                                    ->groupBy('regiao_id', 'txt_regiao')
                                     ->get();
-        
-      
-
-        return $municipios;
-    }
-
-    public function buscarEmpreendimentos($municipio){
-        
-        $where = [];
-        $where[] = ['municipio_id', $municipio];
-        
-
-        $empreendimentos =  ExecutivoPj::join('tab_empreendimentos','tab_empreendimentos.operacao_id','=','tab_executivo_pj.cod_operacao')
-                                    ->selectRaw('txt_nome_empreendimento, empreendimento_id, cod_operacao')
-                                    ->where($where)
-                                    ->groupBy('txt_nome_empreendimento', 'empreendimento_id','cod_operacao')
-                                    ->orderBy('txt_nome_empreendimento', 'asc')
-                                    ->get();
-        
-      
-
-        return $empreendimentos;
-    }
-
-    public function buscarEmpreendimentosModalidade($municipio, $modalidade){
-        
-        $where = [];
-        $where[] = ['municipio_id', $municipio];
-        $where[] = ['modalidade_id', $modalidade];
-        
-
-        $empreendimentos =  ExecutivoPj::join('tab_empreendimentos','tab_empreendimentos.operacao_id','=','tab_executivo_pj.cod_operacao')
-                                    ->selectRaw('txt_nome_empreendimento, empreendimento_id, cod_operacao')
-                                    ->where($where)
-                                    ->groupBy('txt_nome_empreendimento', 'empreendimento_id','cod_operacao')
-                                    ->orderBy('txt_nome_empreendimento', 'asc')
-                                    ->get();
-        
-      
-
-        return $empreendimentos;
-    }
-
-    public function buscarModalidades($municipio){
-        
-        $where = [];
-        $where[] = ['municipio_id', $municipio];
-        
-
-        $Modalidades =  ExecutivoPj::join('opc_modalidade','opc_modalidade.id','=','tab_executivo_pj.modalidade_id')
-                                    ->selectRaw('txt_modalidade, modalidade_id')
-                                    ->where($where)
-                                    ->groupBy('txt_modalidade', 'modalidade_id')
-                                    ->orderBy('txt_modalidade', 'asc')
-                                    ->get();
-        
-      
-
-        return $Modalidades;
-    }
-
-    public function buscarAnos(){
-        
-        $anos =  Operacao::select('num_ano_assinatura')
-                            ->groupBy('num_ano_assinatura')
-                            ->orderBy('num_ano_assinatura', 'asc')
-                            ->get();
-        return $anos;
-    }
-
-    public function buscarAnosAte($ano){
-        $where = [];
-        $where[] = ['num_ano_assinatura','>=',$ano];
-
-        $anos =  Operacao::select('num_ano_assinatura')
-                            ->where($where)
-                            ->groupBy('num_ano_assinatura')
-                            ->orderBy('num_ano_assinatura', 'asc')
-                            ->get();
-        return $anos;
-    }    
-
-    public function buscarPosicoesDe(){
-        
-        $posicoesDe =  PosicaoArquivoExecutivo::orderBy('dte_posicao_arquivo', 'asc')->get();
-        
-        foreach($posicoesDe as $posicao){
-
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_posicao_arquivo));
-        }
-      
-
-        return $posicoesDe;
-    }
-
-    public function buscarPosicoesAte($posicao){
-        
-        $posicao = date('Y-m-d',strtotime($posicao));
-
-        $posicoesAte =  PosicaoArquivoExecutivo::where('dte_posicao_arquivo','>',$posicao)->orderBy('dte_posicao_arquivo', 'asc')->get();
-        
-        foreach($posicoesAte as $posicao){
-
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_posicao_arquivo));
-        }
-      
-
-        return $posicoesAte;
-    }
-
-
-    public function buscarUfsRetomada(){   
-
-        return ResumoRetomadaObras::select('uf_id','txt_uf', 'txt_sigla_uf')
-                            ->orderBy('txt_sigla_uf', 'asc')
-                            ->groupBy('uf_id','txt_uf', 'txt_sigla_uf')
-                            ->get();    
-        
-    }
-
-    public function buscarMunicipiosRetomada($estado){   
-
-        $ufs =  ResumoRetomadaObras::select('municipio_id', 'ds_municipio')
-                            ->where('uf_id',$estado)
-                            ->orderBy('ds_municipio', 'asc')
-                            ->groupBy('municipio_id', 'ds_municipio')
-                            ->get();    
-        return $ufs;
-    }
-
-    public function buscarStatusSnh(){   
-
-        return StatusSnh::orderBy('txt_status_snh', 'asc')->get();  
-}
-
-    public function buscarSituacaoObra(){   
-
-            return ResumoRetomadaObras::select('situacao_obra_id', 'txt_situacao_obra')
-                                            ->orderBy('txt_situacao_obra', 'asc')
-                                            ->groupBy('situacao_obra_id', 'txt_situacao_obra')
-                                            ->get();  
-    }
-
-    public function buscarStatusEmpreendimento(){   
-
-        return StatusEmpreendimento::get(); 
-}
-
-public function buscarStatusEmpreendimentoVigente($vigente){   
-
-    return StatusEmpreendimento::where('bln_vigente',$vigente)
-            ->get(); 
-}
-
-    public function buscarStatusSnhEstados($estado){   
-
-        return ResumoRetomadaObras::select('status_snh_id', 'txt_status_snh')
-                                   ->where('uf_id',$estado)
-                                   ->orderBy('txt_status_snh', 'asc')
-                                   ->groupBy('status_snh_id', 'txt_status_snh')
-                                 ->get();          
-}
-
-public function buscarStatusSnhMunicipio($municipio){   
-
-    return ResumoRetomadaObras::select('status_snh_id', 'txt_status_snh')
-                                ->where('municipio_id',$municipio)
-                                ->orderBy('txt_status_snh', 'asc')
-                                ->groupBy('status_snh_id', 'txt_status_snh')
-                            ->get(); 
-}
-
- 
-    public function buscarSituacaoObraEstados($estado){   
-
-            return ResumoRetomadaObras::select('situacao_obra_id', 'txt_situacao_obra')
-                                       ->where('uf_id',$estado)
-                                       ->orderBy('txt_situacao_obra', 'asc')
-                                       ->groupBy('situacao_obra_id', 'txt_situacao_obra')
-                                     ->get();          
-    }
-
-    public function buscarSituacaoObraMunicipio($municipio){   
-
-            return ResumoRetomadaObras::select('situacao_obra_id', 'txt_situacao_obra')
-                                            ->where('municipio_id',$municipio)
-                                            ->orderBy('txt_situacao_obra', 'asc')
-                                            ->groupBy('situacao_obra_id', 'txt_situacao_obra')
-                                            ->get();  
-    }
-
     
-    public function buscarUfsProtocolos(){        
-        $estados =  ResumoProtocolos::select('id_uf', 'sg_uf')
-                                    ->orderBy('sg_uf', 'asc')
-                                    ->groupBy('id_uf', 'sg_uf')
+        return $regioes;
+    }
+    
+    public function buscarUfsContratadas(){      
+        $where = [];
+        $where[] = ['bln_selecionada', true];
+        $where[] = ['bln_contratada', true];
+    
+        $estados =  ResumoPropostas::select('uf_id', 'txt_uf')
+                                    ->orderBy('txt_uf', 'asc')
+                                    ->where($where)
+                                    ->groupBy('uf_id', 'txt_uf')
                                     ->get();
-
+    
         return $estados;
-    }  
-    
-    public function buscarUfsInstProtocolos($instituicao){        
-        $estados =  ResumoProtocolos::select('id_uf', 'sg_uf')
-                                    ->orderBy('sg_uf', 'asc')
-                                    ->where('instituicao_id',$instituicao)
-                                    ->groupBy('id_uf', 'sg_uf')
-                                    ->get();
-
-        return $estados;
-    } 
-    
-
-    
-    
-    public function buscarMunicipiosProtocolos($estado){   
-
-        $municipio =  ResumoProtocolos::select('id_municipio', 'ds_municipio')
-                                    ->where('id_uf',$estado)
-                                    ->orderBy('ds_municipio', 'asc')
-                                    ->groupBy('id_municipio', 'ds_municipio')
-                                    ->get();
-
-        return $municipio;
-    } 
-
-    public function buscarMunicipiosInstProtocolos($instituicao,$estado){   
-
-        $municipio =  ResumoProtocolos::select('id_municipio', 'ds_municipio')
-                                    ->where('instituicao_id',$instituicao)
-                                    ->where('id_uf',$estado)
-                                    ->orderBy('ds_municipio', 'asc')
-                                    ->groupBy('id_municipio', 'ds_municipio')
-                                    ->get();
-
-        return $municipio;
-    } 
-    
-
-
-    public function autocompleteProtocolos($query){  
-       
-        $protocolos = Protocolo::where('txt_protocolo','like','%'.$query.'%')
-                                    ->orderBy('txt_protocolo')
-                                    ->get();
-       return response()->json($protocolos);
     }
 
-    public function autocompleteNis($query){  
-       
-        $contratos = Contrato::where('txt_nis_titular','like','%'.$query.'%')
-                                    ->orderBy('txt_nis_titular')
-                                    ->get();
-       return response()->json($contratos);
-    }
-
-    public function autocompleteAPF($query){  
-       
-        $propostas = Propostas::where('num_apf','like','%'.$query.'%')
-                                    ->orderBy('num_apf')
-                                    ->get();
-       return response()->json($propostas);
-    }  
     
-    public function autocompleteCNPJ($query){  
-       
-        $proponentes = Proponente::where('txt_cnpj','like','%'.$query.'%')
-                                    ->orderBy('txt_cnpj')
-                                    ->get();
-       return response()->json($proponentes);
-    }
-    
-    public function autocompleteLimite($query){  
-       
-        $municipios = Municipio::join('tab_uf','tab_uf.id','=','tab_municipios.uf_id')
-                                 ->where('ds_municipio','like','%'.$query.'%')
-                                 ->orderBy('ds_municipio')
-                                 ->get();
-       return response()->json($municipios);
-    }     
-
-///CONTRATADAS
-public function buscarRegioesContratadas(){    
-    $where = [];
-    $where[] = ['bln_selecionada', true];
-    $where[] = ['bln_contratada', true];    
-    $regioes =  ResumoPropostas::select('regiao_id', 'txt_regiao')
-                                ->orderBy('txt_regiao', 'asc')
-                                ->where($where)
-                                ->groupBy('regiao_id', 'txt_regiao')
-                                ->get();
-
-    return $regioes;
-}
-
-public function buscarUfsContratadas(){      
-    $where = [];
-    $where[] = ['bln_selecionada', true];
-    $where[] = ['bln_contratada', true];
-
-    $estados =  ResumoPropostas::select('uf_id', 'txt_uf')
-                                ->orderBy('txt_uf', 'asc')
-                                ->where($where)
-                                ->groupBy('uf_id', 'txt_uf')
-                                ->get();
-
-    return $estados;
-}
-
 public function buscarEstadosContratadas($regiao){
     
     $where = [];
@@ -561,6 +228,7 @@ public function buscarEstadosContratadas($regiao){
 
     return $estados;
 }
+
 
 public function buscarAnosRegioesContratadas($regiao){
     
@@ -579,6 +247,7 @@ public function buscarAnosRegioesContratadas($regiao){
     return $anos;
 }
 
+
 public function buscarAnosEstadoContratadas($estado){
     
     $where = [];
@@ -596,6 +265,7 @@ public function buscarAnosEstadoContratadas($estado){
     return $anos;
 }
 
+
 public function buscarAnosMunicipioContratadas($municipio){
     
     $where = [];
@@ -612,6 +282,7 @@ public function buscarAnosMunicipioContratadas($municipio){
 
     return $anos;
 }
+
 
 public function buscarAnosModalidadeContratadas($modalidade){
     
@@ -683,100 +354,199 @@ public function buscarModalidadesRegiaoContratadas($regiao){
     return $modalidades;
 }   
 
+    /**APIS PROPOSTAS_MCMV */    
 
 
-//  CODEM
-
-    public function listaTipoDemanda(){
-            
-        return TipoDemanda::orderBy('txt_tipo_demanda', 'asc')->get();
+    /**APIS INDICADORES HABITACIONAIS */    
+    public function buscarRegioes(){        
+        return Regiao::orderBy('txt_regiao')->get();
     }
 
-    public function listaTipoAtendimento(){
+    public function buscarUfs(){        
+        return Uf::orderBy('txt_uf')->get();
+    }
+
+    public function buscarRides(){        
+        return BrasilComRm::select('txt_rm_ride')
+                        ->orderBy('txt_rm_ride', 'asc')
+                        ->where('txt_rm_ride','<>','' )
+                        ->groupBy('txt_rm_ride')
+                        ->get();
+    }
+
+    public function buscarMunicipios($estado){
         
-        return TipoAtendimento::orderBy('txt_tipo_atendimento', 'asc')->get();
+        return Municipio::where('uf_id', $estado)->orderBy('ds_municipio', 'asc')->get();
     }
+
+    public function buscarUfsRides($estado){       
+       
+        $where = [];
+        $where[] = ['uf_id',$estado]; 
+        return BrasilComRm::select('txt_rm_ride')
+                        ->orderBy('txt_rm_ride', 'asc')
+                        ->where( $where )
+                        ->where('txt_rm_ride','<>','')
+                        ->groupBy('txt_rm_ride')
+                        ->get();
+    }
+
+    public function buscarUfsRegiao($regiao){        
+        return Uf::where('regiao_id',$regiao)->orderBy('txt_uf')->get();
+    }
+
+    public function buscarRegioesRides($regiao){       
+       
+        $where = [];
+        $where[] = ['regiao_id',$regiao]; 
+        return BrasilComRm::select('txt_rm_ride')
+                        ->orderBy('txt_rm_ride', 'asc')
+                        ->where( $where )
+                        ->where('txt_rm_ride','<>','')
+                        ->groupBy('txt_rm_ride')
+                        ->get();
+    }
+
     
-    public function listaTema(){
+
+
+
+    /**APIS INDICADORES HABITACIONAIS */    
+
+
+    /**APIS TAB OPERACOES */    
+
+    public function buscarAnos(){
         
-        return Tema::orderBy('txt_tema', 'asc')->get();
+        return [['num_ano_assinatura' => '2009'], 
+                ['num_ano_assinatura' => '2010'], 
+                ['num_ano_assinatura' => '2011'], 
+                ['num_ano_assinatura' => '2012'], 
+                ['num_ano_assinatura' => '2013'], 
+                ['num_ano_assinatura' => '2014'], 
+                ['num_ano_assinatura' => '2015'], 
+                ['num_ano_assinatura' => '2016'], 
+                ['num_ano_assinatura' => '2017'], 
+                ['num_ano_assinatura' => '2018'], 
+                ['num_ano_assinatura' => '2019'], 
+                ['num_ano_assinatura' => '2020'], 
+                ['num_ano_assinatura' => '2021']];
+        
     }
 
-    public function listaSubTema(Tema $tema){
-        
-        return SubTema::where('tema_id', $tema->id)->orderBy('txt_sub_tema', 'asc')->get();
-    }
+    
 
-    public function listaPrioridade(){
+    public function buscarAnosAte($ano){
+        $where = [];
+        $where[] = ['num_ano_assinatura','>=',$ano];
         
-        return Prioridade::orderBy('txt_prioridade', 'asc')->get();
+       
+        $anos =  ViewOperacoesContratadas::select('num_ano_assinatura')
+                    ->where($where)
+                    ->groupBy('num_ano_assinatura')
+                    ->orderBy('num_ano_assinatura', 'asc')
+                    ->get();
+
+        return $anos;
     }  
-    
-    public function buscaPrioridade($qtd_dias){
-        
-        return Prioridade::where('id',$qtd_dias)->value('num_max_dias');
-    } 
 
-    public function listaTipoInteressado(){
-        
-        return TipoInteressado::orderBy('txt_tipo_interessado', 'asc')->get();
-    }  
-
-    public function listaModalidadeDemanda(){
-        
-        return ModalidadeDemanda::orderBy('txt_modalidade_demanda', 'asc')->get();
-    } 
-
-    public function buscaIdTema($subTema){
-        
-        return SubTema::where('id', $subTema)->value('tema_id');
-    }
-
-    public function buscarMunicipioEstado($municipio){
-        
-        return Municipio::where('id', $municipio)->value('uf_id');
-    }
-
-    public function retornarDemandasNovas($usuarioID){
-        
-        
-        $where[] = ['user_id',$usuarioID];
-        $where[] = ['bln_visualizada',false];
-        $demandasNovas = RelacaoDemanda::where($where)
-                                        ->orderBy('dte_solicitacao','desc')
-                                       ->get();    
-                                            
-            return $demandasNovas;                                            
-    }
-    
-    public function retornarDemandasAtrasadas($usuarioID){
-        
-        
-        $where[] = ['user_id',$usuarioID];
-        $where[] = ['qtd_dias_atraso','>',0];
-        $demandasAtrasadas = RelacaoDemanda::where($where)
-                                            ->orderBy('qtd_dias_atraso','desc')
-                                            ->get();    
-                                            
-            return $demandasAtrasadas;                                            
-    }
-
-    public function buscarMunicipiosContratacao($estado){
+    public function buscarModalidadesEstado($estado){
         
         $where = [];
         $where[] = ['uf_id', $estado];
         
 
-        $municipios =  MunicipiosContrataramMcmv::where($where)
-                                    ->orderBy('ds_municipio', 'asc')
+        $modalidades =  ViewOperacoesContratadas::selectRaw('txt_modalidade, modalidade_id as id')
+                                    ->where($where)
+                                    ->groupBy('txt_modalidade', 'modalidade_id')
+                                    ->orderBy('txt_modalidade', 'asc')
+                                    ->get();
+        return $modalidades;
+    }
+
+    public function buscarEmpreendimentosEstado($estado){    
+        
+        
+        $wherePropostas = [];
+        $wherePropostas[] = ['uf_id', $estado];
+        $wherePropostas[] = ['bln_contratada', false]; 
+        $wherePropostas[] = ['txt_nome_empreendimento','<>', null];  
+
+        $empreendimentosPropostas = ResumoPropostas::selectRaw('num_apf as txt_num_apf, max(txt_nome_empreendimento) as txt_nome_empreendimento')
+                                        ->groupBy('num_apf', 'txt_nome_empreendimento')
+                                        ->orderBy('txt_nome_empreendimento', 'asc')
+                                        ->where($wherePropostas)->get();
+
+        $where = [];
+        $where[] = ['uf_id',$estado];
+        $where[] = ['origem_id', 2];                    
+        $where[] = ['txt_nome_empreendimento','<>', null];                    
+       
+          $empreendimentosContratados = ViewOperacoesContratadas::selectRaw('txt_apf as txt_num_apf,    txt_nome_empreendimento')
+                                    ->groupBy('txt_num_apf', 'txt_nome_empreendimento')
+                                    ->orderBy('txt_nome_empreendimento', 'asc')
+                                    ->where($where)
                                     ->get();
 
-        return $municipios;
+
+         $empreendimentos = array_merge($empreendimentosPropostas->toArray(), $empreendimentosContratados->toArray());     
+        
+        
+        return $empreendimentos;        
+    } 
+
+    public function buscarEmpreendimentosMuncipio($municipio){    
+        
+        
+        $wherePropostas = [];
+        $wherePropostas[] = ['municipio_id', $municipio];
+        $wherePropostas[] = ['bln_contratada', false]; 
+
+         $empreendimentosPropostas = ResumoPropostas::selectRaw('num_apf as txt_num_apf, max(txt_nome_empreendimento) as txt_nome_empreendimento')
+                                        ->groupBy('num_apf', 'txt_nome_empreendimento')
+                                        ->orderBy('txt_nome_empreendimento', 'asc')
+                                        ->where($wherePropostas)->get();
+
+        $where = [];
+        $where[] = ['municipio_id',$municipio];
+        $where[] = ['origem_id', 2];                    
+        $where[] = ['txt_nome_empreendimento','<>', null];                    
+       
+        $empreendimentosContratados = ViewOperacoesContratadas::selectRaw('txt_apf as txt_num_apf,    txt_nome_empreendimento')
+                                    ->groupBy('txt_num_apf', 'txt_nome_empreendimento')
+                                    ->orderBy('txt_nome_empreendimento', 'asc')
+                                    ->where($where)
+                                    ->get();
+
+                                    $empreendimentos = array_merge($empreendimentosPropostas->toArray(), $empreendimentosContratados->toArray());     
+        
+        return $empreendimentos;        
     }
+
+    public function buscarModalidadesMunicipio($municipio){
+        
+        $where = [];
+        $where[] = ['municipio_id', $municipio];
+        
+
+        $modalidades =  ViewOperacoesContratadas::selectRaw('txt_modalidade, modalidade_id as id')
+                                    ->where($where)
+                                    ->groupBy('txt_modalidade', 'modalidade_id')
+                                    ->orderBy('txt_modalidade', 'asc')
+                                    ->get();
+        
+      
+
+        return $modalidades;
+    }
+
+    /**APIS TAB OPERACOES */    
+
+    /** APIS MEDICOES */
 
     public function buscarUfSolicitacoesPagamento(){       
 
-        return SolicitacaoPagamento::select('uf_id','txt_uf')
+        return ViewMedicoesObras::select('uf_id','txt_uf')
         ->groupBy('uf_id','txt_uf')
         ->orderBy('txt_uf')
         ->get();
@@ -788,7 +558,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         $where = [];
         $where[] = ['uf_id', $estado];
 
-        return SolicitacaoPagamento::select('municipio_id','ds_municipio')
+        return ViewMedicoesObras::select('municipio_id','ds_municipio')
         ->groupBy('municipio_id','ds_municipio')
         ->where($where)
         ->orderBy('ds_municipio')
@@ -806,38 +576,38 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         $where = [];
         $where[] = ['uf_id', $estado];
        
-        return SolicitacaoPagamento::select('tipo_liberacao_id as id','txt_tipo_liberacao')
+        return ViewMedicoesObras::select('tipo_liberacao_id as id','txt_tipo_liberacao')
         ->where($where)
         ->groupBy('tipo_liberacao_id','txt_tipo_liberacao')        
         ->orderBy('txt_tipo_liberacao')
         ->get();
         
-    }    
+    }   
 
-    public function buscarMesesSolicitacao(){       
-        
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')
-        ->groupBy('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')        
-        ->orderBy('ano_solicitacao','ASC')
-        ->orderBy('num_mes_solicitacao')
-        ->get();
-
-    }
-    
     public function buscarMesUF($estado){       
         $where = [];
         $where[] = ['uf_id', $estado];
        
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao')
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao')
                                     ->where($where)
                                     ->groupBy('num_mes_solicitacao','mes_solicitacao')        
                                     ->orderBy('num_mes_solicitacao')
                                     ->get();
                                     
     } 
-    
+
+    public function buscarMesesSolicitacao(){       
+        
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')
+        ->groupBy('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')        
+        ->orderBy('ano_solicitacao','ASC')
+        ->orderBy('num_mes_solicitacao')
+        ->get();
+
+    }
+
     public function buscarPosicoesDeSolicit(){      
-        $posicoesDe =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->groupBy('dte_solicitacao')        
                                             ->orderBy('dte_solicitacao')
                                             ->get();
@@ -852,7 +622,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         $where = [];
         $where[] = ['uf_id', $estado];
 
-        $posicoesDe =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->where($where)
                                             ->groupBy('dte_solicitacao')        
                                             ->orderBy('dte_solicitacao')
@@ -874,7 +644,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         }
         
         
-        $posicoesAte =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesAte =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->groupBy('dte_solicitacao')  
                                             ->where($where)      
                                             ->orderBy('dte_solicitacao')
@@ -885,12 +655,63 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         }
         return $posicoesAte;        
     } 
+
+    public function buscarPosicoesAteLib($posicaoDeLib){    
+        
+        $where = [];
+
+        if($posicaoDeLib){
+            $where[] = ['dte_liberacao','>',$posicaoDeLib];
+        }
+        
+        
+        $posicoesAte =  ViewMedicoesObras::select('dte_liberacao')
+                                            ->groupBy('dte_liberacao')  
+                                            ->where($where)      
+                                            ->orderBy('dte_liberacao')
+                                            ->get();
+        
+        foreach($posicoesAte as $posicao){
+            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_liberacao));
+        }
+        return $posicoesAte;        
+    } 
+
+    
+    public function buscarPosicoesDeSolicitMes($mesSolicitacao){  
+        
+     
+        $where = [];
+       $ano =  intval(substr($mesSolicitacao, -4));;
+       $pos_espaco = strpos($mesSolicitacao, '-');// perceba que há um espaço aqui
+       $mes = substr($mesSolicitacao, 0, $pos_espaco);
+
+     
+
+        if($mesSolicitacao){
+            $where[] = ['num_mes_solicitacao', $mes];
+            $where[] = ['ano_solicitacao', $ano];
+        }
+        
+
+
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
+                                            ->where($where)
+                                            ->groupBy('dte_solicitacao')        
+                                            ->orderBy('dte_solicitacao')
+                                            ->get();
+        
+        foreach($posicoesDe as $posicao){
+            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_solicitacao));
+        }
+        return $posicoesDe;        
+    }  
     
     public function buscarTipoLiberacaoMun($municipio){       
         $where = [];
         $where[] = ['municipio_id', $municipio];
        
-        return SolicitacaoPagamento::select('tipo_liberacao_id as id','txt_tipo_liberacao')
+        return ViewMedicoesObras::select('tipo_liberacao_id as id','txt_tipo_liberacao')
         ->where($where)
         ->groupBy('tipo_liberacao_id','txt_tipo_liberacao')        
         ->orderBy('txt_tipo_liberacao')
@@ -898,12 +719,11 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         
     } 
 
-    
     public function buscarMesMun($municipio){       
         $where = [];
         $where[] = ['municipio_id', $municipio];
        
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao')
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao')
                                     ->where($where)
                                     ->groupBy('num_mes_solicitacao','mes_solicitacao')        
                                     ->orderBy('num_mes_solicitacao')
@@ -915,7 +735,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         $where = [];
         $where[] = ['municipio_id', $municipio];
 
-        $posicoesDe =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->where($where)
                                             ->groupBy('dte_solicitacao')        
                                             ->orderBy('dte_solicitacao')
@@ -925,26 +745,6 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_solicitacao));
         }
         return $posicoesDe;        
-    } 
-
-    public function buscarMesTipoUf($estado,$tipoLiberacao){       
-        $where = [];
-
-
-        
-        if($estado){
-            $where[] = ['uf_id',$estado];
-        }
-        if($tipoLiberacao){
-            $where[] = ['tipo_liberacao_id',$tipoLiberacao];
-        }
-
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao')
-                                    ->where($where)
-                                    ->groupBy('num_mes_solicitacao','mes_solicitacao')        
-                                    ->orderBy('num_mes_solicitacao')
-                                    ->get();
-                                    
     } 
 
     public function buscarMesTipoMun($municipio,$tipoLiberacao){       
@@ -959,13 +759,33 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $where[] = ['tipo_liberacao_id',$tipoLiberacao];
         }
 
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao')
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao')
                                     ->where($where)
                                     ->groupBy('num_mes_solicitacao','mes_solicitacao')        
                                     ->orderBy('num_mes_solicitacao')
                                     ->get();
                                     
     }
+
+    public function buscarMesTipoUf($estado,$tipoLiberacao){       
+        $where = [];
+
+
+        
+        if($estado){
+            $where[] = ['uf_id',$estado];
+        }
+        if($tipoLiberacao){
+            $where[] = ['tipo_liberacao_id',$tipoLiberacao];
+        }
+
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao')
+                                    ->where($where)
+                                    ->groupBy('num_mes_solicitacao','mes_solicitacao')        
+                                    ->orderBy('num_mes_solicitacao')
+                                    ->get();
+                                    
+    } 
 
     public function buscarPosicoesDeTipoMun($municipio,$tipoLiberacao){  
         $where = [];
@@ -978,7 +798,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $where[] = ['tipo_liberacao_id',$tipoLiberacao];
         }
 
-        $posicoesDe =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->where($where)
                                             ->groupBy('dte_solicitacao')        
                                             ->orderBy('dte_solicitacao')
@@ -1021,9 +841,10 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $where[] = ['tipo_liberacao_id',$tipoLiberacao];
         }
 
-        return SolicitacaoPagamento::select('num_mes_solicitacao','mes_solicitacao')
+        return ViewMedicoesObras::select('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')
                                     ->where($where)
-                                    ->groupBy('num_mes_solicitacao','mes_solicitacao')        
+                                    ->groupBy('num_mes_solicitacao','mes_solicitacao','ano_solicitacao')        
+                                    ->orderBy('ano_solicitacao','ASC')
                                     ->orderBy('num_mes_solicitacao')
                                     ->get();
                                     
@@ -1037,7 +858,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $where[] = ['tipo_liberacao_id',$tipoLiberacao];
         }
 
-        $posicoesDe =  SolicitacaoLiberacao::select('dte_solicitacao')
+        $posicoesDe =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->where($where)
                                             ->groupBy('dte_solicitacao')        
                                             ->orderBy('dte_solicitacao')
@@ -1049,51 +870,6 @@ public function buscarModalidadesRegiaoContratadas($regiao){
         return $posicoesDe;        
     } 
 
-    public function buscarLiberacoes(){  
-        
-
-        $liberacoes =  SolicitacaoLiberacao::select('dte_liberacao')
-                                            ->groupBy('dte_liberacao')
-                                            ->where('dte_liberacao','<>',null)        
-                                            ->orderBy('dte_liberacao','DESC')
-                                            ->get();
-        
-        foreach($liberacoes as $liberacao){
-            
-            $liberacao['dte_posicao_formatada'] = date('d/m/Y',strtotime($liberacao->dte_liberacao));
-        }
-        return $liberacoes;        
-    }
-
-    public function buscarPosicoesDeSolicitMes($mesSolicitacao){  
-        
-     
-        $where = [];
-       $ano =  intval(substr($mesSolicitacao, -4));;
-       $pos_espaco = strpos($mesSolicitacao, '-');// perceba que há um espaço aqui
-       $mes = substr($mesSolicitacao, 0, $pos_espaco);
-
-     
-
-        if($mesSolicitacao){
-            $where[] = ['num_mes_solicitacao', $mes];
-            $where[] = ['ano_solicitacao', $ano];
-        }
-        
-
-
-        $posicoesDe =  SolicitacaoPagamento::select('dte_solicitacao')
-                                            ->where($where)
-                                            ->groupBy('dte_solicitacao')        
-                                            ->orderBy('dte_solicitacao')
-                                            ->get();
-        
-        foreach($posicoesDe as $posicao){
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_solicitacao));
-        }
-        return $posicoesDe;        
-    }  
-    
     public function buscarPosicoesAteSolicitMes($mesSolicitacao,$posicaoDe){    
         
         $where = [];
@@ -1110,7 +886,7 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $where[] = ['ano_solicitacao', $ano];
         }
         
-        $posicoesAte =  SolicitacaoPagamento::select('dte_solicitacao')
+        $posicoesAte =  ViewMedicoesObras::select('dte_solicitacao')
                                             ->groupBy('dte_solicitacao')  
                                             ->where($where)      
                                             ->orderBy('dte_solicitacao')
@@ -1120,266 +896,101 @@ public function buscarModalidadesRegiaoContratadas($regiao){
             $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_solicitacao));
         }
         return $posicoesAte;        
-    }     
+    }    
 
-    public function buscarMesesLiberacao(){       
-        $where = [];
-        $where[] = ['dte_liberacao','>=','2019-01-01'];
-        return SolicitacaoPagamento::select('num_mes_liberacao','mes_liberacao','ano_liberacao')
-        ->where($where)
-        ->groupBy('num_mes_liberacao','mes_liberacao','ano_liberacao')                
-        ->orderBy('ano_liberacao', 'asc')
-        ->orderBy('num_mes_liberacao')
-        ->get();
+      /** APIS MEDICOES */
 
+
+      /** APIS OFERTA PUBLICA */
+
+      public function buscarInstituicoes(){
+        
+        return Instituicao::where('id','<>', 3)->orderBy('txt_nome_if', 'asc')->get();
     }
 
-    public function buscarPosicoesDeLibMes($mesLiberacao){  
-        
-     
-        $where = [];
-        $ano =  intval(substr($mesLiberacao, -4));;
-        $pos_espaco = strpos($mesLiberacao, '-');// perceba que há um espaço aqui
-         $mes = substr($mesLiberacao, 0, $pos_espaco);
-     
-        if($mesLiberacao){
-            $where[] = ['num_mes_liberacao', $mes];
-            $where[] = ['ano_liberacao', $ano];
-        }
-        
 
+    public function buscarUfsInstProtocolos($instituicao){        
+        $estados =  ResumoProtocolos::select('id_uf', 'sg_uf')
+                                    ->orderBy('sg_uf', 'asc')
+                                    ->where('instituicao_id',$instituicao)
+                                    ->groupBy('id_uf', 'sg_uf')
+                                    ->get();
 
-        $posicoesDe =  SolicitacaoPagamento::select('dte_liberacao')
-                                            ->where($where)
-                                            ->groupBy('dte_liberacao')        
-                                            ->orderBy('dte_liberacao')
-                                            ->get();
-        
-        foreach($posicoesDe as $posicao){
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_liberacao));
-        }
-        return $posicoesDe;        
+        return $estados;
+    } 
+
+    public function buscarUfsProtocolos(){        
+        $estados =  ResumoProtocolos::select('id_uf', 'sg_uf')
+                                    ->orderBy('sg_uf', 'asc')
+                                    ->groupBy('id_uf', 'sg_uf')
+                                    ->get();
+
+        return $estados;
     }  
 
-    public function buscarPosicoesAteLib($posicaoDeLib){    
-        
-        $where = [];
+   
+    public function buscarMunicipiosInstProtocolos($instituicao,$estado){   
 
-        if($posicaoDeLib){
-            $where[] = ['dte_liberacao','>',$posicaoDeLib];
-        }
-        
-        
-        $posicoesAte =  SolicitacaoPagamento::select('dte_liberacao')
-                                            ->groupBy('dte_liberacao')  
-                                            ->where($where)      
-                                            ->orderBy('dte_liberacao')
-                                            ->get();
-        
-        foreach($posicoesAte as $posicao){
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_liberacao));
-        }
-        return $posicoesAte;        
-    } 
-
-    public function buscarPosicoesAteLibMes($mesLiberacao,$posicaoDeLib){    
-        
-        $where = [];
-
-        if($posicaoDeLib){
-            $where[] = ['dte_liberacao','>',$posicaoDeLib];
-        }
-        
-        if($mesLiberacao){
-            $where[] = ['num_mes_liberacao',$mesLiberacao];
-        }
-        
-        $posicoesAte =  SolicitacaoPagamento::select('dte_liberacao')
-                                            ->groupBy('dte_liberacao')  
-                                            ->where($where)      
-                                            ->orderBy('dte_liberacao')
-                                            ->get();
-        
-        foreach($posicoesAte as $posicao){
-            $posicao['dte_posicao_formatada'] = date('d/m/Y',strtotime($posicao->dte_liberacao));
-        }
-        return $posicoesAte;        
-    }   
-
-    public function buscarEmpreendimentosEstado($estado){    
-        
-        
-        $wherePropostas = [];
-        $wherePropostas[] = ['uf_id', $estado];
-        $wherePropostas[] = ['bln_contratada', false]; 
-
-        $empreendimentosPropostas = ResumoPropostas::selectRaw('num_apf as txt_num_apf, max(txt_nome_empreendimento) as txt_nome_empreendimento')
-                                        ->groupBy('num_apf', 'txt_nome_empreendimento')
-                                        ->orderBy('txt_nome_empreendimento', 'asc')
-                                        ->where($wherePropostas)->get();
-
-        $where = [];
-        $where[] = ['uf_id',$estado];
-        $where[] = ['origem_id', 2];                    
-        $where[] = ['txt_nome_empreendimento','<>', null];                    
-       
-         return $empreendimentosContratados = Operacao::leftjoin('tab_municipios','tab_operacoes.municipio_id', '=','tab_municipios.id')
-         ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-         ->selectRaw('txt_num_apf,    txt_nome_empreendimento')
-                                    ->groupBy('txt_num_apf', 'txt_nome_empreendimento')
-                                    ->orderBy('txt_nome_empreendimento', 'asc')
-                                    ->where($where)
-                                    ->get();
-
-         $empreendimentos = $empreendimentosPropostas->union($empreendimentosContratados);     
-        
-        
-        return $empreendimentos;        
-    } 
-
-    public function buscarEmpreendimentosMuncipio($municipio){    
-        
-        
-        $wherePropostas = [];
-        $wherePropostas[] = ['municipio_id', $municipio];
-        $wherePropostas[] = ['bln_contratada', false]; 
-
-         $empreendimentosPropostas = ResumoPropostas::selectRaw('num_apf as txt_num_apf, max(txt_nome_empreendimento) as txt_nome_empreendimento')
-                                        ->groupBy('num_apf', 'txt_nome_empreendimento')
-                                        ->orderBy('txt_nome_empreendimento', 'asc')
-                                        ->where($wherePropostas)->get();
-
-        $where = [];
-        $where[] = ['municipio_id',$municipio];
-        $where[] = ['origem_id', 2];                    
-        $where[] = ['txt_nome_empreendimento','<>', null];                    
-       
-        $empreendimentosContratados = Operacao::leftjoin('tab_municipios','tab_operacoes.municipio_id', '=','tab_municipios.id')
-                                    ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                                    ->selectRaw('tab_operacoes.id as txt_num_apf, txt_nome_empreendimento')
-                                    ->groupBy('tab_operacoes.id','txt_nome_empreendimento')
-                                    ->orderBy('txt_nome_empreendimento', 'asc')
-                                    ->where($where)
-                                    ->get();
-
-         $empreendimentos = $empreendimentosPropostas->union($empreendimentosContratados);     
-        
-        
-        return $empreendimentos;        
-    }
-
-    public function buscarSituacaoObraExecutivo(){       
-        return SituacaoObra::orderBy('txt_situacao_obra')->get();
-
-    }
-
-    public function buscarMunicipiosVinculadas($estado){   
-
-        $municipio =  MunicipiosBeneficiados::join('tab_municipios','tab_municipios.id','=','tab_municipios_beneficiados.municipio_id')
-                                    ->select('municipio_id', 'ds_municipio')
-                                    ->where('uf_id',$estado)
+        $municipio =  ResumoProtocolos::select('id_municipio', 'ds_municipio')
+                                    ->where('instituicao_id',$instituicao)
+                                    ->where('id_uf',$estado)
                                     ->orderBy('ds_municipio', 'asc')
-                                    ->groupBy('municipio_id', 'ds_municipio')
+                                    ->groupBy('id_municipio', 'ds_municipio')
                                     ->get();
 
         return $municipio;
     } 
     
-    public function listaModalidades(){
-
-        return $modalidades = Modalidade::orderBy('txt_modalidade')->get();
-    }
-
-    public function listaFaixas(){
-
-        return $faixas = FaixaRenda::orderBy('dsc_faixa')->get();
-    }
-
-
-    public function anosEntregas(){
-
-        return Entregas::selectRaw('num_ano_entrega')->groupBy('num_ano_entrega')->orderBy('num_ano_entrega')->get();
-    }
-    
-    public function buscarModalidadesMunicipio($municipio){
         
-        $where = [];
-        $where[] = ['municipio_id', $municipio];
-        
+    public function buscarMunicipiosProtocolos($estado){   
 
-        $modalidades =  Operacao::leftjoin('opc_modalidades','opc_modalidades.id','=','tab_operacoes.modalidade_id')
-                                    ->selectRaw('txt_modalidade, modalidade_id as id')
-                                    ->where($where)
-                                    ->groupBy('txt_modalidade', 'modalidade_id')
-                                    ->orderBy('txt_modalidade', 'asc')
+        $municipio =  ResumoProtocolos::select('id_municipio', 'ds_municipio')
+                                    ->where('id_uf',$estado)
+                                    ->orderBy('ds_municipio', 'asc')
+                                    ->groupBy('id_municipio', 'ds_municipio')
                                     ->get();
+
+        return $municipio;
+    } 
+
+    /** APIS OFERTA PUBLICA */
+
+/** APIS SELECAO DEMANDAS */
+    public function buscarUfsEntesPublicos(){  
         
+        $estados = DemandaGerada ::join('tab_municipios','tab_municipios.id','=','tab_demanda_gerada.municipio_id')
+                                 ->join('tab_uf','tab_uf.id','=','tab_municipios.uf_id')
+                                 ->selectRaw('tab_uf.id,txt_uf')
+                                 ->groupBy('tab_uf.id','txt_uf')
+                                 ->orderBy('txt_sigla_uf')
+                               ->get();
+    return response()->json($estados);
+    }  
+
+    public function buscarMunicipioEstadoEntePublico($municipio){
+        
+        return DemandaGerada ::join('tab_municipios','tab_municipios.id','=','tab_demanda_gerada.municipio_id')
+        ->join('tab_uf','tab_uf.id','=','tab_municipios.uf_id')
+        ->where('id', $municipio)->value('uf_id');
       
-
-        return $modalidades;
     }
-    
-    public function buscarModalidadesEstado($estado){
-        
-        $where = [];
-        $where[] = ['uf_id', $estado];
-        
 
-        $modalidades =  Operacao::leftjoin('tab_municipios','tab_operacoes.municipio_id', '=','tab_municipios.id')
-                                    ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                                    ->leftjoin('opc_modalidades','opc_modalidades.id','=','tab_operacoes.modalidade_id')
-                                    ->selectRaw('txt_modalidade, modalidade_id as id')
-                                    ->where($where)
-                                    ->groupBy('txt_modalidade', 'modalidade_id')
-                                    ->orderBy('txt_modalidade', 'asc')
-                                    ->get();
+    public function buscarMunicipioEntePublico($estado){
         
+        return DemandaGerada::join('tab_municipios','tab_municipios.id','=','tab_demanda_gerada.municipio_id')
+                            ->selectRaw('tab_municipios.id, ds_municipio')
+                            ->where('tab_municipios.uf_id', $estado)
+                            ->groupBy('tab_municipios.id', 'ds_municipio')
+                            ->orderBy('ds_municipio')
+                        ->get();
       
-
-        return $modalidades;
     }
 
-    public function acoesGoverno(){
 
-        return AcoesGoverno::get();
-    }
+/** APIS SELECAO DEMANDAS */
 
-    public function anosOrcamento(){
 
-        return Orcamento::selectRaw('num_ano_exercicio')->groupBy('num_ano_exercicio')->orderBy('num_ano_exercicio')->get();
-    }
-
-    public function tipoUsuario(){
-
-        return TipoUsuario::where('id','>',7)->get();
-    }
-
-    public function tipoUsuarioModulo($modulo_sistema){
-
-          
-        if($modulo_sistema == 1){
-            return TipoUsuario::whereIn('id',[1,2,3,4,5,6,7,10])->get();
-        }else {
-            return TipoUsuario::whereIn('id',[8])->get();
-        }
-        
-    }
-
-    public function entePublico(){
-
-        return EntePublico::where('bln_ativo',true)->orderBy('txt_ente_publico')->get();
-    }
-
-    public function tipoEntePublico(){
-
-        return TipoEntePublico::get();
-    }
-
-    public function moduloSistema(){
-
-        return ModuloSistema::get();
-    }
-
+/** APIS PROTÓTIPOS HIS */
     public function titularidadeTerreno(){
         return TitularidadeTerreno::get();
     }
@@ -1395,18 +1006,187 @@ public function buscarModalidadesRegiaoContratadas($regiao){
     public function fonteRecurso(){
         return FonteRecurso::get();
     }  
-    
+
     public function tipoOrganizacao(){
         return TipoOrganizacao::get();
     }  
-    
+
     public function tipoIndeferimento(){
         return TipoIndeferimento::orderBy('txt_tipo_indeferimento')->get();
     }  
-    
+
     public function modalidadeParticipacao(){
-        return ModalidadeParticipacao::orderBy('txt_modalidade_participacao')->get();
+        return ModalidadeParticipacao::where('bln_ativo',true)->orderBy('txt_modalidade_participacao')->get();
     }  
 
+    public function situacaoTerreno(){
+        return SituacaoTerreno::orderBy('id')->get();
+        
+    }  
+
+/** APIS PROTÓTIPOS HIS */
+
+
+/** APIS PCVA PARCERIA */
+
+    public function tipoContrapartida(){
+        return TipoContrapartida::orderBy('id')->orderBy('txt_tipo_contrapartida')->get();
+        
+    } 
+
+    public function situacaoAdesao(){
+        return SituacaoAdesao::orderBy('txt_situacao_adesao')->get();
+        
+    } 
+
+/** APIS PCVA PARCERIA */
+
+
+public function buscarDadosGraficoEntregasMes($operacao_id){
     
+     $entregas = HistoricoEntregas::selectRaw("operacao_id, 
+                                                date_part('YEAR'::text, dte_entrega) AS num_ano_entrega,
+                                                sum(qtd_uh_entregues) as total_uh_entregues,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 1 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_jan,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 2 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_fev,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 3 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_mar,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 4 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_abr,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 5 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_mai,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 6 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_jun,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 7 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_jul,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 8 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_ago,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 9 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_set,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 10 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_out,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 11 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_nov,
+                                                sum(CASE WHEN date_part('MONTH'::text, dte_entrega) = 12 THEN  qtd_uh_entregues
+                                                        else 0 
+                                                        END) AS mes_dez")
+                                                ->where('operacao_id', $operacao_id)
+                                                ->groupby("operacao_id", "num_ano_entrega")
+                                                ->orderby( "num_ano_entrega")
+                                                ->get();
+
+                                                $graficoEntrega = array();    
+        $cores = [
+            1 => "#3490dc",
+            2 => "#f66D9b",
+            3 => "#9561e2",
+            4 => "#38c172",
+            5 => "#e3342f",
+            6 => "#f6993f",
+            7 => "#ffed4a",
+            8 => "#6574cd",
+            9 => "#4dc0b5",
+            10 => "#6cb2eb",
+            11 => "#fff",
+            12 => "#6c757d"
+        ];
+
+        $count = 1;
+        
+            foreach($entregas as $entrega){
+                $dados['fillColor'] = $cores[$count];
+                $dados['strokeColor'] = $cores[$count];
+                $dados['pointColor'] = $cores[$count];
+                $dados['pointStrokeColor'] = "fff";  
+                $dados['data'] = "[". $entrega->mes_jan .', '. $entrega->mes_fev .', '.$entrega->mes_mar .', '.$entrega->mes_abr .', '.$entrega->mes_mai .', '.$entrega->mes_jun .', '.
+                                            $entrega->mes_jul .', '.$entrega->mes_ago .', '.$entrega->mes_set .', '.$entrega->mes_out .', '.$entrega->mes_nov .', '.$entrega->mes_dez . "]";
+                $dados['label'] = $entrega->num_ano_entrega; 
+                array_push($graficoEntrega, $dados);
+                $count++;
+        }  
+
+        return $graficoEntrega;
+
+    }        
+    
+    public function buscarDadosGraficoEntregasAno($operacao_id){
+    
+        $entregas = HistoricoEntregas::selectRaw("operacao_id, 
+                                                   sum(qtd_uh_entregues) as total_uh_entregues,
+                                                   sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2009 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2009,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2010 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2010,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2011 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2011,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2012 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2012,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2013 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2013,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2014 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2014,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2015 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2015,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2016 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2016,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2017 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2017,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2018 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2018,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2019 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2019,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2020 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2020,
+                                                    sum(CASE WHEN date_part('YEAR'::text, dte_entrega) = 2021 THEN  qtd_uh_entregues
+                                                           else 0 
+                                                           END) AS ano_2021
+                                                                  ")
+                                                   ->where('operacao_id', $operacao_id)
+                                                   ->groupby("operacao_id")
+                                                   ->get();
+   
+                                                   $graficoEntrega = array();    
+   
+           $count = 1;
+           
+               foreach($entregas as $entrega){
+                   $dados['fillColor'] = '#6cb2eb';
+                   $dados['strokeColor'] ="#6c757d";
+                   $dados['pointColor'] = "#3490dc";
+                   $dados['pointStrokeColor'] = "fff";  
+                   $dados['data'] = "[". $entrega->ano_2009 .', '. $entrega->ano_2010 .', '.$entrega->ano_2011 .', '.$entrega->ano_2012 .', '.$entrega->ano_2013 .', '.$entrega->ano_2014 .', '.
+                                               $entrega->ano_2015 .', '.$entrega->ano_2016 .', '.$entrega->ano_2017 .', '.$entrega->ano_2018 .', '.$entrega->ano_2019 .', '.$entrega->ano_2020 .', '.$entrega->ano_2021 . "]";
+                   $dados['label'] = "Entregas de UH"; 
+                   array_push($graficoEntrega, $dados);
+                   $count++;
+           }  
+   
+           return $graficoEntrega;
+   
+       }    
 }

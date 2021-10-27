@@ -63,7 +63,7 @@ return [
             'password' => env('DB_PASSWORD', ''),
             'charset' => 'utf8',
             'prefix' => '',
-            'schema' => ['beneficiarios','entregas','indicadores_habitacionais','medicoes_obras','operacoes_novo','orcamento','propostas_mcmv','pmcmv_historico', 'relatorio_executivo','repositorio_arquivos','retomada_obras','codem_web','vinculadas_pac','selecao_beneficiarios','prototipo_his'],
+            'schema' => ['_indicadores_habitacionais','_tabelas_dominios','medicoes_obras','operacoes','pcva_parcerias','propostas_mcmv','prototipo_his', 'selecao_beneficiarios','sishab'],
             'sslmode' => 'prefer',
         ],
         

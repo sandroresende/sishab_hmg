@@ -3,7 +3,7 @@
 
 <p>Prezado(a) {{ $permissao->user->nome }} {{ $permissao->user->sobrenome }},</p>
 <p>Parabéns, você foi aprovado(a) para enviar propostas para o Protótipos para Habitação de Interesse Social através do <strong>SISHAB</strong>. 
-Faça o login no sistema com a senha padrão "123456" e acesse a página de seleções para iniciar o cadastramento de sua proposta.</p>
+Faça o login no sistema e acesse a página de seleções para iniciar o cadastramento de sua proposta.</p>
 
 @component('mail::button', ['url' => $url])
 Acessar SISHAB

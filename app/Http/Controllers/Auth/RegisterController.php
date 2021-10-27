@@ -37,7 +37,7 @@ class RegisterController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('guest');
     }
 
     /**
@@ -52,7 +52,6 @@ class RegisterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'tipo_usuario_id' => 'required',
         ]);
     }
 
@@ -64,21 +63,10 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
-
-        if( $data['tipo_usuario_id'] == 8){
-            $modulo_sistema_id = 2;
-        }else{
-            $modulo_sistema_id = 1;
-        }
-        
         return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'tipo_usuario_id' => $data['tipo_usuario_id'],
-            'modulo_sistema_id' => $modulo_sistema_id,
         ]);
     }
-
-      
 }

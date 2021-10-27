@@ -86,5 +86,15 @@ class AuthServiceProvider extends ServiceProvider
             }
             return false;
         });
+
+        Gate::define('ePrototipo', function ($user) {
+
+            if($user->tipo_usuario_id == 11){
+                return true;
+            }
+            return false;
+        });
+
+        //
     }
 }

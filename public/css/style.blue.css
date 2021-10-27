@@ -1207,7 +1207,7 @@ input.form-control {
 }
 
 input.form-control::-moz-placeholder {
-  font-size: 0.75em;
+  font-size: 1.1em;
   font-weight: 400;
   color: #aaa;
   font-family: "Roboto", sans-serif;

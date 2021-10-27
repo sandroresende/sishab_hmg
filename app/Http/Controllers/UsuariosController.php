@@ -4,16 +4,16 @@ namespace App\Http\Controllers;
 
 use DB;
 use Illuminate\Http\Request;
-use App\Http\Requests\ente_publico\SalvarUsuario;
-use App\Http\Requests\ente_publico\SalvarUsuarioEnte;
+use App\Http\Requests\Mod_selecao_demanda\SalvarUsuario;
+use App\Http\Requests\Mod_selecao_demanda\SalvarUsuarioEnte;
 use Illuminate\Support\Facades\Auth;
 
 use App\User;
 use Config\App;
 use App\StatusUsuario;
 use App\TipoUsuario;
-use App\ente_publico\EntePublico;
-use App\prototipo\EntePublicoProponente;
+use App\Mod_selecao_demanda\EntePublico;
+use App\Mod_prototipo\EntePublicoProponente;
 
 use App\ModuloSistema;
 
@@ -45,7 +45,7 @@ class UsuariosController extends Controller
 
     public function cadastroUsuario()
     {
-        return view('ente_publico.cadastrar_usuario');
+        return view('views_selecao_beneficiarios.cadastrar_usuario');
     }
 
     public function cadastroUsuarioEnte()
@@ -53,7 +53,7 @@ class UsuariosController extends Controller
          $entes = EntePublico::get();
          $modulos = ModuloSistema::get();
         
-        return view('ente_publico.cadastrar_usuario_ente', compact('entes', 'modulos','tipoUsuarios'));
+        return view('views_selecao_beneficiarios.cadastrar_usuario_ente', compact('entes', 'modulos','tipoUsuarios'));
     }
 
     public function salvarUsuario(SalvarUsuario $request)
@@ -77,11 +77,11 @@ class UsuariosController extends Controller
 
         if ($salvoComSucesso){
             flash()->sucesso("Sucesso", "Usuário cadastrado com sucesso!"); 
-            return redirect('/entePublico/usuarios');
+            return redirect('/selecao_beneficiarios/usuarios');
         } else {
             flash()->erro("Erro", "Não foi possível cadastrar os dados do usuário.");            
         }  
-        // return view('ente_publico.cadastrar_usuario');
+        // return view('views_selecao_beneficiarios.cadastrar_usuario');
     }
 
     public function salvarUsuarioEnte(Request $request)
@@ -109,6 +109,7 @@ class UsuariosController extends Controller
         $usuario->modulo_sistema_id = $request->modulo_sistema;
         $usuario->ente_publico_id = $ente;
         $usuario->status_usuario_id = $status_usuario;
+        $usuario->created_at = Date("Y-m-d h:i:s");
         if($request->modulo_sistema == 3){
             $usuario->txt_cpf_usuario = $request->txt_cpf_usuario;
             $usuario->txt_cargo = $request->txt_cargo;
@@ -130,6 +131,7 @@ class UsuariosController extends Controller
             $entePublico->municipio_id = $request->municipio;
             $entePublico->txt_nome_chefe_executivo = $request->txt_nome_chefe_executivo;
             $entePublico->txt_cargo_executivo = $request->cargo_executivo;
+            $entePublico->created_at = Date("Y-m-d h:i:s");
             $salvoComSucessoEnte = $entePublico->save();
         }else{
             $salvoComSucessoEnte = true;
@@ -152,6 +154,7 @@ class UsuariosController extends Controller
         
         $usuario->status_usuario_id = 3;
         $usuario->bln_ativo = false;
+        $usuario->updated_at = Date("Y-m-d h:i:s");
         
         if($usuario->save()){
            
@@ -163,7 +166,7 @@ class UsuariosController extends Controller
         }
 
         
-        return redirect('entePublico/usuarios');
+        return redirect('selecao_beneficiarios/usuarios');
            
     
     }
@@ -176,7 +179,7 @@ class UsuariosController extends Controller
 
            $numUsuarios = Auth::user()->getNumUsuarios(Auth::user()); 
             //return $usuariosInativos->count();
-            return view('ente_publico.usuarios_ente_publico', compact('usuariosAtivos', 'usuariosInativos', 
+            return view('views_selecao_beneficiarios.usuarios_ente_publico', compact('usuariosAtivos', 'usuariosInativos', 
                     'usuariosExcluidos','numUsuarios'));  
         }else{
             flash()->erro('Acesso negado', 'Você não possui acesso aos dados dos Usuários', 'error');
@@ -204,7 +207,7 @@ class UsuariosController extends Controller
 
 public function dadosUsuario(Request $request, User $usuario){           
         
-    $idUsuarioLogado = Auth::user()->id;
+     $idUsuarioLogado = Auth::user()->id;
     // Auth::user()->ente_publico_id;                                                                                                                                                                                                                                                                                            ;
     if($usuario->ente_publico_id != Auth::user()->ente_publico_id){
         flash()->erro('Acesso negado', 'Você não possui acesso aos dados desse Usuário', 'error');
@@ -212,7 +215,7 @@ public function dadosUsuario(Request $request, User $usuario){
     }
     
     $usuario = $usuario->load('tipoUsuario', 'statusUsuario');
-    return view('ente_publico.dados_usuario', compact('usuario', 'idUsuarioLogado'));
+    return view('views_gerais.dados_usuario', compact('usuario', 'idUsuarioLogado'));
 }  
 
 public function listaUsuarios(){
@@ -223,7 +226,7 @@ public function listaUsuarios(){
         $usuariosExcluidos = $this->buscarUsuariosStatus(3);
 
         //return $usuariosInativos->count();
-        return view('ente_publico.usuarios_ente_publico', compact('usuariosAtivos', 'usuariosInativos', 'usuariosExcluidos'));  
+        return view('views_selecao_beneficiarios.usuarios_ente_publico', compact('usuariosAtivos', 'usuariosInativos', 'usuariosExcluidos'));  
     }else{
         flash()->erro('Acesso negado', 'Você não possui acesso aos dados dos Usuários', 'error');
         return back(); 
@@ -231,7 +234,38 @@ public function listaUsuarios(){
 }
 
 
+public function updateUsuario(Request $request, $usuario)
+    {
 
+         //return $request->all();
+
+       
+        DB::beginTransaction();
+
+        $usuario = User::find($usuario);
+        $usuario->name = $request->txt_nome;
+        $usuario->txt_cargo = $request->txt_cargo;
+        $usuario->txt_ddd_fixo = $request->txt_ddd_fixo;
+        $usuario->txt_telefone_fixo = $request->txt_telefone_fixo;
+        $usuario->txt_ddd_movel = $request->txt_ddd_movel;
+        $usuario->txt_telefone_movel = $request->txt_telefone_movel;
+        $usuario->txt_telefone_movel = $request->txt_telefone_movel;
+        $usuario->updated_at = Date("Y-m-d h:i:s");
+               
+        $salvoComSucessoUsu = $usuario->save();
+   
+
+
+
+        if (!$salvoComSucessoUsu){            
+            DB::rollBack();
+            flash()->erro("Erro", "Não foi possível atualizar os dados do responsável.");            
+        } else {
+            DB::commit();
+            flash()->sucesso("Sucesso", "Dados Atualizados com sucessocom sucesso!"); 
+        }  
+        return back(); 
+    }   
 
 }
 

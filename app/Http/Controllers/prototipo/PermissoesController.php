@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\prototipo;
+namespace App\Http\Controllers\Prototipo;
 
 use DB;
 
@@ -20,11 +20,14 @@ use App\Mail\NovoOficio;
 use App\Mail\PermissaoDeferida;
 use App\Mail\PermissaoIndeferida;
 
-use App\prototipo\Permissoes;
-use App\prototipo\StatusPermissao;
+use App\Mod_prototipo\Permissoes;
+use App\Mod_prototipo\StatusPermissao;
 
-use App\prototipo\TipoIndeferimento;
-use App\prototipo\EntePublicoProponente;
+use App\Mod_prototipo\TipoIndeferimento;
+use App\Mod_prototipo\EntePublicoProponente;
+
+use App\IndicadoresHabitacionais\Municipio;
+use App\IndicadoresHabitacionais\Uf;
 
 class PermissoesController extends Controller
 {
@@ -37,87 +40,71 @@ class PermissoesController extends Controller
 
     
 
-public function listaPermissoes(){
-
-       $permissoes = Permissoes::join('users','users.id','=','tab_permissoes.user_id')
-                                    ->leftjoin('tab_ente_publico_proponente','users.ente_publico_id', '=','tab_ente_publico_proponente.id')
-                                    ->leftjoin('tab_municipios','tab_ente_publico_proponente.municipio_id', '=','tab_municipios.id')
-                                    ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                                    ->leftjoin('opc_status_permissao','tab_permissoes.status_permissao_id', '=','opc_status_permissao.id')
-                                    ->leftjoin('opc_tipo_indeferimento','tab_permissoes.tipo_indeferimento_id', '=','opc_tipo_indeferimento.id')
-                                    ->leftjoin('users as users2','users2.id','=','tab_permissoes.usuario_id_analise')
-                                    ->select('txt_sigla_uf','ds_municipio','txt_ente_publico','users.txt_cpf_usuario',
-                                     'users.email','users.name','txt_status_permissao',
-                                     'opc_tipo_indeferimento.txt_tipo_indeferimento','users2.name as analisado_por',
-                                     'tab_permissoes.*')
-                            ->orderBy('txt_sigla_uf', 'asc')
-                            ->orderBy('ds_municipio', 'asc')
-                            ->orderBy('name', 'asc')
-                                    ->get();
-     $permissoesAnalise = Permissoes::join('users','users.id','=','tab_permissoes.user_id')
-                                    ->leftjoin('tab_ente_publico_proponente','users.ente_publico_id', '=','tab_ente_publico_proponente.id')
-                                    ->leftjoin('tab_municipios','tab_ente_publico_proponente.municipio_id', '=','tab_municipios.id')
-                                    ->leftjoin('tab_uf', 'tab_municipios.uf_id', '=', 'tab_uf.id')
-                                    ->leftjoin('opc_status_permissao','tab_permissoes.status_permissao_id', '=','opc_status_permissao.id')
-                                    ->leftjoin('opc_tipo_indeferimento','tab_permissoes.tipo_indeferimento_id', '=','opc_tipo_indeferimento.id')
-                                    ->leftjoin('users as users2','users2.id','=','tab_permissoes.usuario_id_analise')
-                                    ->select('txt_sigla_uf','ds_municipio','txt_ente_publico','users.txt_cpf_usuario',
-                                     'users.email','users.name','txt_status_permissao',
-                                     'opc_tipo_indeferimento.txt_tipo_indeferimento','users2.name as analisado_por',
-                                     'tab_permissoes.*')
-                            ->where('status_permissao_id', '1')
-                            ->orderBy('created_at', 'desc')
-                            ->orderBy('name', 'asc')
-                                    ->get();                                
-
-     $cabecalhoTabAnalise = ['UF','Município', 'Proponente','CPF','Nome','Data Solicitação'];
-
-     $cabecalhoTab = ['UF','Município', 'Proponente','CPF','Nome','Data Solicitação','Data Análise','Analisada Por'];
-
-     //$permissoesAnalise =  [];
-     $permissoesDeferida = [];
-     $permissoesIndeferida = [];
-     $permissoesBloqueada = [];
-
-  
-
-     foreach($permissoes as $permissao){
-        $dados = [];
-         if($permissao->status_permissao_id == 2){
-                    array_push($permissoesDeferida, $permissao);            
-                }else if($permissao->status_permissao_id == 3){
-                        array_push($permissoesIndeferida, $permissao);            
-                    }else  if($permissao->status_permissao_id == 4){
-                            array_push($permissoesBloqueada, $permissao);            
-        }
-        
-        
-         
-        
-        
-        
-     }  
-      $tipoIndeferimento = TipoIndeferimento::select('id','txt_tipo_indeferimento as nome')->orderBy('txt_tipo_indeferimento')->get(); 
-    
-     //return json_encode($permissoesIndeferida);
-
-    return view('prototipo.permissoes_prototipo ',compact('permissoes','permissoesAnalise','permissoesDeferida','permissoesIndeferida','permissoesBloqueada','cabecalhoTabAnalise',
-                'cabecalhoTab','tipoIndeferimento'));
-
-}
 
 public function deferirPermissao(Permissoes $permissao){
 
-    DB::beginTransaction();
+    return view('prototipo.deferir_permissao',compact('permissao'));
 
-        $usuario = Auth::user();
+}
+
+
+
+public function deferirPendencia(Permissoes $permissao){
+
+    //  return $request;
+    
+      DB::beginTransaction();
+     // $permissao = Permissoes::find($request->permissao_id);
+           $usuario = Auth::user();
+          
+           
+  
+          $permissao->status_permissao_id = 2;
+          $permissao->bln_analisada = true;
+          $permissao->dte_analise = Date("Y-m-d h:i:s");
+          $permissao->usuario_id_analise = $usuario->id; 
+  
+          
+  
+          $salvouPermissao = $permissao->save();
+  
+         $permissao->load('user');
+  
+          if (!$salvouPermissao){   
+              DB::rollBack();
+              flash()->erro("Erro", "Não foi possível deferir a permissão.");            
+          } else {
+              Mail::to($permissao->user->email)->send(new PermissaoDeferida($permissao));
+             
+              DB::commit();
+              flash()->sucesso("Sucesso", "Permissão deferida com sucesso"); 
+  
+             // return redirect()->back()->with('mensagem','Credenciais não são válidas');
+  
+  
+              return redirect('admin/permissoes/prototipos/'); 
+              
+          } 
+  
+  }
+
+public function salvarDeferimento(Request $request){
+
+  //  return $request;
+  
+    DB::beginTransaction();
+    $permissao = Permissoes::find($request->permissao_id);
+         $usuario = Auth::user();
         
          
 
-        $permissao->status_permissao_id = 2;
+        $permissao->status_permissao_id = $request->tipo_deferimento;
+        $permissao->txt_observacao = $request->txt_observacao;
         $permissao->bln_analisada = true;
         $permissao->dte_analise = Date("Y-m-d h:i:s");
         $permissao->usuario_id_analise = $usuario->id; 
+
+        
 
         $salvouPermissao = $permissao->save();
 
@@ -127,10 +114,13 @@ public function deferirPermissao(Permissoes $permissao){
             DB::rollBack();
             flash()->erro("Erro", "Não foi possível deferir a permissão.");            
         } else {
-            Mail::to($permissao->user->email)->send(new PermissaoDeferida($permissao));
+           // Mail::to($permissao->user->email)->send(new PermissaoDeferida($permissao));
            
             DB::commit();
             flash()->sucesso("Sucesso", "Permissão deferida com sucesso"); 
+
+           // return redirect()->back()->with('mensagem','Credenciais não são válidas');
+
 
             return redirect('admin/permissoes/prototipos/'); 
             
@@ -205,7 +195,7 @@ public function indeferirPermissao(Request $request){
                 DB::commit();
                 flash()->sucesso("Sucesso", "Permissão bloqueada com sucesso"); 
     
-                return redirect('admin/permissoes/prototipos/'); 
+               return redirect('admin/permissoes/prototipos/'); 
                 
             } 
     
