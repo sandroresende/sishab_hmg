@@ -15,8 +15,8 @@ use Config\App;
 
 use Illuminate\Support\Facades\Mail;
 
-use App\Mod_Sishab\Operacoes\ViewOperacoesContratadas;
-use App\Mod_Sishab\Operacoes\ViewOperacoesContratadasAno;
+use App\Mod_sishab\Operacoes\ViewOperacoesContratadas;
+use App\Mod_sishab\Operacoes\ViewOperacoesContratadasAno;
 
 use App\Mod_sishab\Sishab\Configuracoes;
 

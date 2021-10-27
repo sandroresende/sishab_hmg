@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use App\User;
 use Config\App;
 
-use App\Mod_Sishab\Operacoes\ViewOperacoesContratadas;
-use App\Mod_Sishab\Operacoes\ViewOperacoesContratadasAno;
+use App\Mod_sishab\Operacoes\ViewOperacoesContratadas;
+use App\Mod_sishab\Operacoes\ViewOperacoesContratadasAno;
 
 class HomeController extends Controller
 {
